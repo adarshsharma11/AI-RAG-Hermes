@@ -1,0 +1,45 @@
+import type { DatabaseClient } from "./client.js";
+import {
+  createContextCacheRepository,
+  type ContextCacheRepository,
+} from "./context-cache.repository.js";
+import {
+  createContentRepository,
+  type ContentRepository,
+} from "./content.repository.js";
+import {
+  createEmbeddingJobRepository,
+  type EmbeddingJobRepository,
+} from "./embedding-job.repository.js";
+import {
+  createProjectRepository,
+  type ProjectRepository,
+} from "./project.repository.js";
+import {
+  createSearchRepository,
+  type SearchRepository,
+} from "./search.repository.js";
+import { createSourceRepository, type SourceRepository } from "./source.repository.js";
+import { createSyncRepository, type SyncRepository } from "./sync.repository.js";
+
+export interface RepositoryContainer {
+  projects: ProjectRepository;
+  sources: SourceRepository;
+  content: ContentRepository;
+  contextCache: ContextCacheRepository;
+  embeddingJobs: EmbeddingJobRepository;
+  search: SearchRepository;
+  sync: SyncRepository;
+}
+
+export const createRepositories = (
+  databaseClient: DatabaseClient,
+): RepositoryContainer => ({
+  projects: createProjectRepository(databaseClient.db),
+  sources: createSourceRepository(databaseClient.db),
+  content: createContentRepository(databaseClient.db),
+  contextCache: createContextCacheRepository(databaseClient.db),
+  embeddingJobs: createEmbeddingJobRepository(databaseClient.db),
+  search: createSearchRepository(databaseClient.db),
+  sync: createSyncRepository(databaseClient.db),
+});

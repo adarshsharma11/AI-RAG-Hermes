@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: ai-memory-postgres
+    environment:
+      POSTGRES_DB: ai_memory
+      POSTGRES_USER: hermes
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  ai-memory:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 4000
+      DATABASE_URL: postgres://hermes:password@postgres:5432/ai_memory
+      LOG_LEVEL: info
+    ports:
+      - "4000:4000"
+
+volumes:
+  postgres_data:

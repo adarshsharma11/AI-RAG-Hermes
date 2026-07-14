@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1784005366459,
+      "tag": "0000_new_maginty",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784007066866,
+      "tag": "0001_wakeful_ozymandias",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784007947691,
+      "tag": "0002_wandering_martin_li",
+      "breakpoints": true
+    }
+  ]
+}
