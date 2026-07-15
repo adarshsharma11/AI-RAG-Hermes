@@ -28,6 +28,97 @@ const createContentRecord = (overrides: Partial<{
 });
 
 describe("EmbeddingService", () => {
+  it("reports claimed work during the first cycle after a fresh import", async () => {
+    const repositories: RepositoryContainer = {
+      projects: {} as RepositoryContainer["projects"],
+      sources: {} as RepositoryContainer["sources"],
+      content: {
+        create: vi.fn(),
+        findById: vi.fn(),
+        listByIds: vi.fn(),
+        findBySourceAndExternalId: vi.fn(),
+        findEmbeddingContentById: vi.fn(),
+        listByProjectId: vi.fn(),
+        listBySourceId: vi.fn(),
+        listSyncStateBySourceId: vi.fn(),
+        listPendingEmbeddingIds: vi.fn(),
+        listPage: vi.fn(),
+        countByFilters: vi.fn(),
+        update: vi.fn(),
+        storeEmbedding: vi.fn(),
+        delete: vi.fn(),
+      },
+      contextCache: {
+        findValidByHash: vi.fn(),
+        save: vi.fn(),
+        deleteExpired: vi.fn(),
+      },
+      embeddingJobs: {
+        create: vi.fn(),
+        enqueuePendingContent: vi.fn().mockResolvedValue(100),
+        claimPending: vi.fn().mockResolvedValue(
+          Array.from({ length: 25 }, (_, index) => ({
+            id: `job-${index + 1}`,
+            contentItemId: `content-${index + 1}`,
+            model: "nomic-embed-text",
+            provider: "ollama",
+            status: "RUNNING",
+            attempts: 1,
+            priority: 0,
+            tokensProcessed: 0,
+            startedAt: new Date(),
+            finishedAt: null,
+            error: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })),
+        ),
+        findById: vi.fn(),
+        listPage: vi.fn(),
+        countByFilters: vi.fn(),
+        getMetrics: vi.fn().mockResolvedValue({
+          pending: 75,
+          running: 0,
+          completed: 25,
+          failed: 0,
+          averageDuration: 10,
+          tokensProcessed: 250,
+        }),
+        markCompleted: vi.fn().mockResolvedValue({ id: "job-1" }),
+        markFailed: vi.fn(),
+        resetFailedJobs: vi.fn(),
+        update: vi.fn(),
+      },
+      search: {
+        searchByEmbedding: vi.fn(),
+      },
+      sync: {} as RepositoryContainer["sync"],
+    };
+    const provider = {
+      generateEmbedding: vi.fn().mockResolvedValue(Array.from({ length: 768 }, () => 0.1)),
+    };
+    const service = createEmbeddingService({
+      repositories,
+      logger: {
+        warn: vi.fn(),
+      } as unknown as Parameters<typeof createEmbeddingService>[0]["logger"],
+      env: {
+        EMBEDDING_BATCH_SIZE: 25,
+        EMBEDDING_CONCURRENCY: 4,
+        EMBEDDING_MODEL: "nomic-embed-text",
+        OLLAMA_TIMEOUT: 1000,
+        OLLAMA_URL: "http://127.0.0.1:11434",
+      },
+      createProvider: () => provider,
+    });
+
+    const result = await service.runPendingJobs();
+
+    expect(result.enqueued).toBe(100);
+    expect(result.claimed).toBeGreaterThan(0);
+    expect(result.claimed).toBe(25);
+  });
+
   it("processes a claimed batch and stores vectors asynchronously", async () => {
     const contentA = createContentRecord({ id: "content-1", checksum: "a" });
     const contentB = createContentRecord({

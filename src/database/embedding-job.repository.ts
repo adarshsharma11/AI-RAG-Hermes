@@ -149,31 +149,55 @@ export const createEmbeddingJobRepository = (
         "priority" = greatest("embedding_jobs"."priority", excluded."priority"),
         "status" = case
           when "embedding_jobs"."status" = 'COMPLETED'::"embedding_job_status"
+            or (
+              "embedding_jobs"."status" = 'PENDING'::"embedding_job_status"
+              and "embedding_jobs"."error" is null
+            )
             then 'PENDING'::"embedding_job_status"
           else "embedding_jobs"."status"
         end,
         "attempts" = case
           when "embedding_jobs"."status" = 'COMPLETED'::"embedding_job_status"
+            or (
+              "embedding_jobs"."status" = 'PENDING'::"embedding_job_status"
+              and "embedding_jobs"."error" is null
+            )
             then 0
           else "embedding_jobs"."attempts"
         end,
         "tokens_processed" = case
           when "embedding_jobs"."status" = 'COMPLETED'::"embedding_job_status"
+            or (
+              "embedding_jobs"."status" = 'PENDING'::"embedding_job_status"
+              and "embedding_jobs"."error" is null
+            )
             then 0
           else "embedding_jobs"."tokens_processed"
         end,
         "started_at" = case
           when "embedding_jobs"."status" = 'COMPLETED'::"embedding_job_status"
+            or (
+              "embedding_jobs"."status" = 'PENDING'::"embedding_job_status"
+              and "embedding_jobs"."error" is null
+            )
             then null
           else "embedding_jobs"."started_at"
         end,
         "finished_at" = case
           when "embedding_jobs"."status" = 'COMPLETED'::"embedding_job_status"
+            or (
+              "embedding_jobs"."status" = 'PENDING'::"embedding_job_status"
+              and "embedding_jobs"."error" is null
+            )
             then null
           else "embedding_jobs"."finished_at"
         end,
         "error" = case
           when "embedding_jobs"."status" = 'COMPLETED'::"embedding_job_status"
+            or (
+              "embedding_jobs"."status" = 'PENDING'::"embedding_job_status"
+              and "embedding_jobs"."error" is null
+            )
             then null
           else "embedding_jobs"."error"
         end,
