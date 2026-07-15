@@ -13,6 +13,55 @@ import {
 const MAX_EMBEDDING_TEXT_LENGTH = 8000;
 const MAX_ATTEMPTS = 3;
 const EMBEDDING_PROVIDER_NAME = "ollama";
+const DEBUG_ENV_PATH = ".dbg/embedding-pipeline-stuck.env";
+
+const reportEmbeddingDebug = async (
+  hypothesisId: string,
+  location: string,
+  msg: string,
+  data: Record<string, unknown>,
+): Promise<void> => {
+  if (process.env.NODE_ENV === "test" || process.env.VITEST) {
+    return;
+  }
+
+  // #region debug-point A:embedding-service-report
+  let debugServerUrl = "http://127.0.0.1:7777/event";
+  let sessionId = "embedding-pipeline-stuck";
+  let debugEnabled = false;
+
+  try {
+    const { readFile } = await import("node:fs/promises");
+    const content = await readFile(DEBUG_ENV_PATH, "utf8");
+    debugServerUrl =
+      content.match(/DEBUG_SERVER_URL=(.+)/)?.[1]?.trim() ?? debugServerUrl;
+    sessionId = content.match(/DEBUG_SESSION_ID=(.+)/)?.[1]?.trim() ?? sessionId;
+    debugEnabled = true;
+  } catch {}
+
+  if (!debugEnabled) {
+    return;
+  }
+
+  try {
+    await fetch(debugServerUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sessionId,
+        runId: "pre-fix",
+        hypothesisId,
+        location,
+        msg: `[DEBUG] ${msg}`,
+        data,
+        ts: Date.now(),
+      }),
+    });
+  } catch {}
+  // #endregion
+};
 
 const clampSegment = (value: string, limit: number): string => {
   if (value.length <= limit) {
@@ -213,34 +262,104 @@ export const createEmbeddingService = ({
   const processJob = async (
     job: Awaited<ReturnType<RepositoryContainer["embeddingJobs"]["claimPending"]>>[number],
   ): Promise<"completed" | "failed" | "deferred"> => {
-    const content = await repositories.content.findEmbeddingContentById(job.contentItemId);
-
-    if (!content) {
-      await repositories.embeddingJobs.markFailed(job.id, {
-        error: { message: "Content item not found" },
-        final: job.attempts >= MAX_ATTEMPTS,
-      });
-      return "failed";
-    }
-
-    if (content.status === "DELETED" || !content.needsEmbedding) {
-      await repositories.embeddingJobs.markCompleted(job.id, { tokensProcessed: 0 });
-      return "deferred";
-    }
-
-    const embeddingText = buildEmbeddingText(content);
-
-    if (!embeddingText) {
-      await repositories.embeddingJobs.markFailed(job.id, {
-        error: { message: "Content item has no embeddable text" },
-        final: job.attempts >= MAX_ATTEMPTS,
-      });
-      return "failed";
-    }
-
     try {
+      await reportEmbeddingDebug(
+        "A",
+        "embedding.service.ts:processJob:start",
+        "JOB START",
+        {
+          jobId: job.id,
+          contentItemId: job.contentItemId,
+          attempts: job.attempts,
+          status: job.status,
+        },
+      );
+      const content = await repositories.content.findEmbeddingContentById(
+        job.contentItemId,
+      );
+
+      await reportEmbeddingDebug(
+        "A",
+        "embedding.service.ts:processJob:content",
+        "CONTENT LOADED",
+        {
+          jobId: job.id,
+          found: content !== null,
+          contentStatus: content?.status ?? null,
+          needsEmbedding: content?.needsEmbedding ?? null,
+          checksum: content?.checksum ?? null,
+        },
+      );
+
+      if (!content) {
+        await repositories.embeddingJobs.markFailed(job.id, {
+          error: { message: "Content item not found" },
+          final: job.attempts >= MAX_ATTEMPTS,
+        });
+        return "failed";
+      }
+
+      if (content.status === "DELETED" || !content.needsEmbedding) {
+        await repositories.embeddingJobs.markCompleted(job.id, {
+          tokensProcessed: 0,
+        });
+        return "deferred";
+      }
+
+      const embeddingText = buildEmbeddingText(content);
+      await reportEmbeddingDebug(
+        "B",
+        "embedding.service.ts:processJob:text",
+        "TEXT CREATED",
+        {
+          jobId: job.id,
+          textLength: embeddingText.length,
+          estimatedTokens: estimateTokens(embeddingText),
+        },
+      );
+
+      if (!embeddingText) {
+        await repositories.embeddingJobs.markFailed(job.id, {
+          error: { message: "Content item has no embeddable text" },
+          final: job.attempts >= MAX_ATTEMPTS,
+        });
+        return "failed";
+      }
+
+      await reportEmbeddingDebug(
+        "B",
+        "embedding.service.ts:processJob:ollama-request",
+        "OLLAMA REQUEST",
+        {
+          jobId: job.id,
+          contentItemId: content.id,
+          textLength: embeddingText.length,
+        },
+      );
       const embedding = await provider.generateEmbedding(embeddingText);
+      await reportEmbeddingDebug(
+        "B",
+        "embedding.service.ts:processJob:ollama-response",
+        "OLLAMA RESPONSE",
+        {
+          jobId: job.id,
+          vectorSize: embedding.length,
+        },
+      );
       const latestContent = await repositories.content.findEmbeddingContentById(content.id);
+
+      await reportEmbeddingDebug(
+        "C",
+        "embedding.service.ts:processJob:latest-content",
+        "LATEST CONTENT LOADED",
+        {
+          jobId: job.id,
+          found: latestContent !== null,
+          contentStatus: latestContent?.status ?? null,
+          needsEmbedding: latestContent?.needsEmbedding ?? null,
+          checksum: latestContent?.checksum ?? null,
+        },
+      );
 
       if (!latestContent) {
         await repositories.embeddingJobs.markFailed(job.id, {
@@ -272,16 +391,56 @@ export const createEmbeddingService = ({
         return "deferred";
       }
 
+      await reportEmbeddingDebug(
+        "C",
+        "embedding.service.ts:processJob:save-vector",
+        "SAVE VECTOR",
+        {
+          jobId: job.id,
+          contentItemId: content.id,
+          vectorSize: embedding.length,
+        },
+      );
       await repositories.content.storeEmbedding(content.id, {
         embedding,
         status: resolveContentStatusAfterEmbedding(latestContent.status),
       });
+      await reportEmbeddingDebug(
+        "C",
+        "embedding.service.ts:processJob:save-vector-complete",
+        "UPDATE CONTENT",
+        {
+          jobId: job.id,
+          contentItemId: content.id,
+        },
+      );
       await repositories.embeddingJobs.markCompleted(job.id, {
         tokensProcessed: estimateTokens(embeddingText),
       });
+      await reportEmbeddingDebug(
+        "C",
+        "embedding.service.ts:processJob:complete",
+        "JOB COMPLETE",
+        {
+          jobId: job.id,
+          contentItemId: content.id,
+        },
+      );
 
       return "completed";
     } catch (error) {
+      await reportEmbeddingDebug(
+        "D",
+        "embedding.service.ts:processJob:failure",
+        "JOB FAILED",
+        {
+          jobId: job.id,
+          contentItemId: job.contentItemId,
+          errorMessage:
+            error instanceof Error ? error.message : "Unknown embedding error",
+          errorStack: error instanceof Error ? error.stack ?? null : null,
+        },
+      );
       logger.warn(
         { err: error, jobId: job.id, contentItemId: job.contentItemId },
         "Embedding job processing failed",
@@ -290,6 +449,7 @@ export const createEmbeddingService = ({
         error: {
           message:
             error instanceof Error ? error.message : "Unknown embedding error",
+          stack: error instanceof Error ? error.stack ?? null : null,
         },
         final: job.attempts >= MAX_ATTEMPTS,
       });
@@ -335,8 +495,28 @@ export const createEmbeddingService = ({
         provider: EMBEDDING_PROVIDER_NAME,
         limit: candidateLimit,
       });
+      await reportEmbeddingDebug(
+        "E",
+        "embedding.service.ts:runPendingJobs:enqueue",
+        "QUEUE ENQUEUE COMPLETE",
+        {
+          candidateLimit,
+          enqueued,
+          batchSize: env.EMBEDDING_BATCH_SIZE,
+          concurrency: env.EMBEDDING_CONCURRENCY,
+        },
+      );
       const jobs = await repositories.embeddingJobs.claimPending(
         env.EMBEDDING_BATCH_SIZE,
+      );
+      await reportEmbeddingDebug(
+        "E",
+        "embedding.service.ts:runPendingJobs:claim",
+        "QUEUE CLAIM COMPLETE",
+        {
+          claimed: jobs.length,
+          jobIds: jobs.map((job) => job.id),
+        },
       );
       const outcomes = await mapWithConcurrency(
         jobs,
@@ -347,6 +527,18 @@ export const createEmbeddingService = ({
       const failed = outcomes.filter((outcome) => outcome === "failed").length;
       const deferred = outcomes.filter((outcome) => outcome === "deferred").length;
       const refreshedMetrics = await repositories.embeddingJobs.getMetrics();
+      await reportEmbeddingDebug(
+        "E",
+        "embedding.service.ts:runPendingJobs:finish",
+        "QUEUE RUN COMPLETE",
+        {
+          claimed: jobs.length,
+          completed,
+          failed,
+          deferred,
+          tokensProcessed: refreshedMetrics.tokensProcessed,
+        },
+      );
 
       return {
         enqueued,

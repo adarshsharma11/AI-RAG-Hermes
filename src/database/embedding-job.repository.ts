@@ -1,4 +1,4 @@
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { count, desc, eq, sql } from "drizzle-orm";
 
 import type { Database } from "./client.js";
 import { now, required } from "./repository.utils.js";
@@ -49,6 +49,41 @@ export interface EmbeddingJobRepository {
   resetFailedJobs(): Promise<number>;
   update(id: string, input: UpdateEmbeddingJobInput): Promise<EmbeddingJobRecord | null>;
 }
+
+const mapClaimedEmbeddingJobRow = (
+  row: Record<string, unknown>,
+): EmbeddingJobRecord => ({
+  id: String(row.id),
+  contentItemId: String(row.content_item_id ?? row.contentItemId),
+  model: String(row.model),
+  provider: String(row.provider),
+  status: row.status as EmbeddingJobRecord["status"],
+  attempts: Number(row.attempts ?? 0),
+  priority: Number(row.priority ?? 0),
+  tokensProcessed: Number(row.tokens_processed ?? row.tokensProcessed ?? 0),
+  startedAt: row.started_at
+    ? new Date(String(row.started_at))
+    : row.startedAt instanceof Date
+      ? row.startedAt
+      : null,
+  finishedAt: row.finished_at
+    ? new Date(String(row.finished_at))
+    : row.finishedAt instanceof Date
+      ? row.finishedAt
+      : null,
+  error:
+    row.error && typeof row.error === "object"
+      ? (row.error as Record<string, unknown>)
+      : null,
+  createdAt:
+    row.created_at instanceof Date
+      ? row.created_at
+      : new Date(String(row.created_at ?? row.createdAt)),
+  updatedAt:
+    row.updated_at instanceof Date
+      ? row.updated_at
+      : new Date(String(row.updated_at ?? row.updatedAt)),
+});
 
 const buildJobWhereClause = ({
   status,
@@ -111,13 +146,37 @@ export const createEmbeddingJobRepository = (
       set
         "model" = excluded."model",
         "provider" = excluded."provider",
-        "status" = 'PENDING'::"embedding_job_status",
-        "attempts" = 0,
         "priority" = greatest("embedding_jobs"."priority", excluded."priority"),
-        "tokens_processed" = 0,
-        "started_at" = null,
-        "finished_at" = null,
-        "error" = null,
+        "status" = case
+          when "embedding_jobs"."status" = 'COMPLETED'::"embedding_job_status"
+            then 'PENDING'::"embedding_job_status"
+          else "embedding_jobs"."status"
+        end,
+        "attempts" = case
+          when "embedding_jobs"."status" = 'COMPLETED'::"embedding_job_status"
+            then 0
+          else "embedding_jobs"."attempts"
+        end,
+        "tokens_processed" = case
+          when "embedding_jobs"."status" = 'COMPLETED'::"embedding_job_status"
+            then 0
+          else "embedding_jobs"."tokens_processed"
+        end,
+        "started_at" = case
+          when "embedding_jobs"."status" = 'COMPLETED'::"embedding_job_status"
+            then null
+          else "embedding_jobs"."started_at"
+        end,
+        "finished_at" = case
+          when "embedding_jobs"."status" = 'COMPLETED'::"embedding_job_status"
+            then null
+          else "embedding_jobs"."finished_at"
+        end,
+        "error" = case
+          when "embedding_jobs"."status" = 'COMPLETED'::"embedding_job_status"
+            then null
+          else "embedding_jobs"."error"
+        end,
         "updated_at" = now()
       where "embedding_jobs"."status" <> 'RUNNING'::"embedding_job_status"
     `);
@@ -126,7 +185,7 @@ export const createEmbeddingJobRepository = (
   },
 
   claimPending: async (limit) => {
-    const result = await db.execute(sql<EmbeddingJobRecord>`
+    const result = await db.execute(sql<Record<string, unknown>>`
       with candidates as (
         select ej."id"
         from "embedding_jobs" ej
@@ -155,7 +214,7 @@ export const createEmbeddingJobRepository = (
       returning ej.*
     `);
 
-    return [...result] as EmbeddingJobRecord[];
+    return [...result].map(mapClaimedEmbeddingJobRow);
   },
 
   findById: async (id) => {
