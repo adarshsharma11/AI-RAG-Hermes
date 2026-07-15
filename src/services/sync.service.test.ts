@@ -113,6 +113,7 @@ describe("SyncService", () => {
         update: vi.fn(),
         delete: vi.fn(),
       },
+      projectProfiles: {} as RepositoryContainer["projectProfiles"],
       sources: {
         create: vi.fn(),
         findById: vi.fn(),

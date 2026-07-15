@@ -31,6 +31,7 @@ describe("EmbeddingService", () => {
   it("reports claimed work during the first cycle after a fresh import", async () => {
     const repositories: RepositoryContainer = {
       projects: {} as RepositoryContainer["projects"],
+      projectProfiles: {} as RepositoryContainer["projectProfiles"],
       sources: {} as RepositoryContainer["sources"],
       content: {
         create: vi.fn(),
@@ -129,6 +130,7 @@ describe("EmbeddingService", () => {
     });
     const repositories: RepositoryContainer = {
       projects: {} as RepositoryContainer["projects"],
+      projectProfiles: {} as RepositoryContainer["projectProfiles"],
       sources: {} as RepositoryContainer["sources"],
       content: {
         create: vi.fn(),
@@ -258,6 +260,7 @@ describe("EmbeddingService", () => {
   it("requeues transient failures and supports manual retry reset", async () => {
     const repositories: RepositoryContainer = {
       projects: {} as RepositoryContainer["projects"],
+      projectProfiles: {} as RepositoryContainer["projectProfiles"],
       sources: {} as RepositoryContainer["sources"],
       content: {
         create: vi.fn(),

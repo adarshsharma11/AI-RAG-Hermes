@@ -13,6 +13,9 @@ describe("TopicGenerator", () => {
         underWrittenTopics: ["Bathroom"],
         missingClusters: ["Floating Shelves"],
         staleContent: [],
+        profileKeywords: ["home services"],
+        preferredTopics: ["Bathroom Vanity Lighting Ideas"],
+        avoidTopics: ["uncategorized model ideas"],
         highValueGaps: [
           {
             category: "Kitchen",

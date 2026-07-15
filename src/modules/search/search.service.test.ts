@@ -49,6 +49,7 @@ describe("SearchService", () => {
     ]);
     const repositories: RepositoryContainer = {
       projects: {} as RepositoryContainer["projects"],
+      projectProfiles: {} as RepositoryContainer["projectProfiles"],
       sources: {} as RepositoryContainer["sources"],
       content: {} as RepositoryContainer["content"],
       contextCache: {} as RepositoryContainer["contextCache"],
@@ -137,6 +138,7 @@ describe("SearchService", () => {
     ]);
     const repositories: RepositoryContainer = {
       projects: {} as RepositoryContainer["projects"],
+      projectProfiles: {} as RepositoryContainer["projectProfiles"],
       sources: {} as RepositoryContainer["sources"],
       content: {} as RepositoryContainer["content"],
       contextCache: {} as RepositoryContainer["contextCache"],

@@ -122,6 +122,9 @@ describe("TopicPlannerService", () => {
           underWrittenTopics: ["Kitchen"],
           missingClusters: [],
           staleContent: [],
+          profileKeywords: [],
+          preferredTopics: [],
+          avoidTopics: [],
           highValueGaps: Array.from({ length: 4 }, (_, index) => ({
             category: "Kitchen",
             keyword: `Cabinet Hardware ${index + 1}`,

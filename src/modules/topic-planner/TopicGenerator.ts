@@ -114,11 +114,41 @@ export const createTopicGenerator = (): TopicGenerator => ({
     const normalizedExistingTopics = new Set(
       analysis.existingTopics.map((topic) => normalizeText(topic)),
     );
-    const normalizedSeedKeywords = seedKeywords
-      .map((keyword) => normalizeText(keyword))
+    const normalizedSeedKeywords = [
+      ...analysis.profileKeywords,
+      ...seedKeywords.map((keyword) => normalizeText(keyword)),
+    ]
       .filter(Boolean);
+    const avoidTopics = new Set(analysis.avoidTopics);
     const candidates: TopicCandidate[] = [];
     const seen = new Set<string>();
+
+    for (const preferredTopic of analysis.preferredTopics) {
+      const topic = titleCase(preferredTopic);
+      const normalizedTopic = normalizeText(topic);
+
+      if (
+        normalizedTopic.length === 0 ||
+        normalizedExistingTopics.has(normalizedTopic) ||
+        seen.has(normalizedTopic) ||
+        avoidTopics.has(normalizedTopic)
+      ) {
+        continue;
+      }
+
+      seen.add(normalizedTopic);
+      candidates.push({
+        topic,
+        category: null,
+        semanticGap: 0.92,
+        businessValue: 0.85,
+        seoOpportunity: 0.8,
+        categoryDiversity: 0.75,
+        freshness: 0.9,
+        recentPublishingFrequency: 0,
+        duplicateScore: 0,
+      });
+    }
 
     for (const seed of analysis.highValueGaps) {
       const seedVariants = normalizedSeedKeywords.length > 0
@@ -135,7 +165,8 @@ export const createTopicGenerator = (): TopicGenerator => ({
           if (
             normalizedTopic.length === 0 ||
             normalizedExistingTopics.has(normalizedTopic) ||
-            seen.has(normalizedTopic)
+            seen.has(normalizedTopic) ||
+            avoidTopics.has(normalizedTopic)
           ) {
             continue;
           }
@@ -162,7 +193,8 @@ export const createTopicGenerator = (): TopicGenerator => ({
 
       if (
         normalizedExistingTopics.has(normalizedTopic) ||
-        seen.has(normalizedTopic)
+        seen.has(normalizedTopic) ||
+        avoidTopics.has(normalizedTopic)
       ) {
         continue;
       }

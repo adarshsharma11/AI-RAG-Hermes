@@ -49,8 +49,8 @@ afterEach(async () => {
   }
 });
 
-describe("sync routes", () => {
-  it("starts a project sync and returns statistics", async () => {
+describe("project profile routes", () => {
+  it("creates and returns a project profile", async () => {
     const servicesStub: ServiceContainer = {
       imports: {
         importProject: vi.fn(),
@@ -75,19 +75,29 @@ describe("sync routes", () => {
       },
       projectProfiles: {
         getProfileByProjectId: vi.fn(),
-        createProfile: vi.fn(),
+        createProfile: vi.fn().mockResolvedValue({
+          id: "profile-1",
+          projectId: "0f24c4b6-3f76-4d95-8345-03b8520b6612",
+          brandName: "Hermes",
+          industry: "Home Services",
+          website: null,
+          authorName: null,
+          businessGoal: null,
+          targetAudience: [],
+          brandVoice: [],
+          services: [],
+          preferredTopics: [],
+          avoidTopics: [],
+          seedKeywords: [],
+          seoFocus: [],
+          createdAt: new Date("2026-07-16T00:00:00.000Z"),
+          updatedAt: new Date("2026-07-16T00:00:00.000Z"),
+        }),
         updateProfile: vi.fn(),
         deleteProfile: vi.fn(),
       },
       syncs: {
-        syncProject: vi.fn().mockResolvedValue({
-          new: 1,
-          updated: 2,
-          deleted: 3,
-          unchanged: 4,
-          failed: 0,
-          duration: 123,
-        }),
+        syncProject: vi.fn(),
         getSyncHistory: vi.fn(),
       },
       search: {
@@ -109,21 +119,40 @@ describe("sync routes", () => {
 
     const response = await app.inject({
       method: "POST",
-      url: "/sync/0f24c4b6-3f76-4d95-8345-03b8520b6612",
+      url: "/projects/0f24c4b6-3f76-4d95-8345-03b8520b6612/profile",
+      payload: {
+        brandName: "Hermes",
+        industry: "Home Services",
+        seedKeywords: ["kitchen remodel ideas"],
+      },
     });
 
-    expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({
-      new: 1,
-      updated: 2,
-      deleted: 3,
-      unchanged: 4,
-      failed: 0,
-      duration: 123,
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toMatchObject({
+      brandName: "Hermes",
+      industry: "Home Services",
     });
   });
 
-  it("returns sync history for a project", async () => {
+  it("returns an existing project profile", async () => {
+    const getProfileByProjectId = vi.fn().mockResolvedValue({
+      id: "profile-1",
+      projectId: "0f24c4b6-3f76-4d95-8345-03b8520b6612",
+      brandName: "Hermes",
+      industry: "Home Services",
+      website: null,
+      authorName: null,
+      businessGoal: null,
+      targetAudience: [],
+      brandVoice: [],
+      services: [],
+      preferredTopics: [],
+      avoidTopics: [],
+      seedKeywords: [],
+      seoFocus: [],
+      createdAt: new Date("2026-07-16T00:00:00.000Z"),
+      updatedAt: new Date("2026-07-16T00:00:00.000Z"),
+    });
     const servicesStub: ServiceContainer = {
       imports: {
         importProject: vi.fn(),
@@ -147,29 +176,14 @@ describe("sync routes", () => {
         getMetrics: vi.fn(),
       },
       projectProfiles: {
-        getProfileByProjectId: vi.fn(),
+        getProfileByProjectId,
         createProfile: vi.fn(),
         updateProfile: vi.fn(),
         deleteProfile: vi.fn(),
       },
       syncs: {
         syncProject: vi.fn(),
-        getSyncHistory: vi.fn().mockResolvedValue([
-          {
-            id: "sync-1",
-            projectId: "project-1",
-            sourceId: "source-1",
-            status: "completed",
-            triggeredBy: "api",
-            stats: { new: 1 },
-            details: {},
-            error: null,
-            startedAt: new Date(),
-            finishedAt: new Date(),
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ]),
+        getSyncHistory: vi.fn(),
       },
       search: {
         search: vi.fn(),
@@ -190,18 +204,12 @@ describe("sync routes", () => {
 
     const response = await app.inject({
       method: "GET",
-      url: "/sync/history/0f24c4b6-3f76-4d95-8345-03b8520b6612",
+      url: "/projects/0f24c4b6-3f76-4d95-8345-03b8520b6612/profile",
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toMatchObject([
-      {
-        id: "sync-1",
-        status: "completed",
-        stats: {
-          new: 1,
-        },
-      },
-    ]);
+    expect(getProfileByProjectId).toHaveBeenCalledWith(
+      "0f24c4b6-3f76-4d95-8345-03b8520b6612",
+    );
   });
 });

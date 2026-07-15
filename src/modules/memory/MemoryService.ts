@@ -160,11 +160,15 @@ export const createMemoryService = ({
       maxContextCharacters,
     }) => {
       const startedAt = Date.now();
+      const projectProfile = await repositories.projectProfiles.getByProjectId(
+        projectId,
+      );
       const resolvedTopic = topic?.trim()
         ? topic.trim()
         : (
             await topicPlannerService.planTopic({
               projectId,
+              profile: projectProfile,
               seedKeywords: keywords,
             })
           )?.topic;

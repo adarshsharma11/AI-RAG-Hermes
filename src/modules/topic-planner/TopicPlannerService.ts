@@ -1,5 +1,6 @@
 import type { AppLogger } from "../../common/logger/logger.js";
 import type { RepositoryContainer } from "../../database/repositories.js";
+import type { ProjectProfileRecord } from "../../database/schema/index.js";
 import {
   createDuplicateDetector,
   type DuplicateDetector,
@@ -34,6 +35,7 @@ export interface TopicPlannerResult {
 export interface TopicPlannerService {
   planTopic(input: {
     projectId: string;
+    profile?: ProjectProfileRecord | null | undefined;
     seedKeywords?: string[] | undefined;
   }): Promise<TopicPlannerResult | null>;
 }
@@ -59,10 +61,11 @@ export const createTopicPlannerService = ({
   topicValidator = createTopicValidator(),
   topicRanker = createTopicRanker(),
 }: CreateTopicPlannerServiceOptions): TopicPlannerService => ({
-  planTopic: async ({ projectId, seedKeywords = [] }) => {
+  planTopic: async ({ projectId, profile, seedKeywords = [] }) => {
     const contentItems = await repositories.content.listByProjectId(projectId);
     const analysis = topicGapAnalyzer.analyze({
       contentItems,
+      profile,
       seedKeywords,
     });
 

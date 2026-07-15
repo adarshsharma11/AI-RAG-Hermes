@@ -62,6 +62,12 @@ const servicesStub: ServiceContainer = {
     buildMemory: vi.fn(),
     getMetrics: vi.fn(),
   },
+  projectProfiles: {
+    getProfileByProjectId: vi.fn(),
+    createProfile: vi.fn(),
+    updateProfile: vi.fn(),
+    deleteProfile: vi.fn(),
+  },
   syncs: {
     syncProject: vi.fn(),
     getSyncHistory: vi.fn(),

@@ -36,6 +36,9 @@ Phase 7 keeps the same separation of concerns:
 - `modules/topic-planner/TopicGenerator.ts`: builds deterministic candidate topics from content gaps, categories, metadata, and keywords.
 - `modules/topic-planner/TopicValidator.ts`: rejects unsafe, duplicate, or low-quality topic candidates before planning continues.
 - `modules/topic-planner/TopicRanker.ts`: scores candidate topics by gap size, SEO opportunity, freshness, and publishing frequency.
+- `services/project-profile.service.ts`: validates and manages brand metadata stored per project.
+- `database/project-profile.repository.ts`: owns all SQL for `project_profiles`.
+- `api/routes/project-profile.ts`: exposes CRUD endpoints for project profiles.
 - `modules/context/ContextAssembler.ts`: chunks content in memory, selects the most relevant snippets, and enforces character limits.
 - `modules/context/ContextRanker.ts`: ranks context candidates with semantic similarity, freshness, content length, published status, and exact keyword match.
 - `modules/context/ContextFilters.ts`: normalizes query keywords, resolves limits, and provides document filtering helpers.
@@ -141,6 +144,8 @@ src/
       InternalLinkService.ts
       MemoryService.ts
       SeoService.ts
+    project-profile/
+      route handled by `api/routes/project-profile.ts`
     topic-planner/
       TopicGapAnalyzer.ts
       TopicGenerator.ts
@@ -472,6 +477,7 @@ When `POST /memory` omits `topic`, AI Memory now selects the next best topic aut
 Hermes
   -> POST /memory (topic optional)
   -> MemoryService
+  -> load project profile
   -> TopicPlannerService
   -> TopicGapAnalyzer
   -> TopicGenerator
@@ -486,27 +492,76 @@ Rules:
 
 - provided topics keep the existing Memory API behavior
 - omitted topics trigger deterministic topic selection
+- project profiles make the planner brand-aware without changing Hermes
 - no LLM is called
 - no article text or outline is generated
 - duplicate candidates are discarded before the final topic is selected
+
+## Project Profiles
+
+Project profiles store brand metadata inside AI Memory so Hermes can remain unaware of planning internals.
+
+Table: `project_profiles`
+
+Stored metadata:
+
+- `brandName`
+- `industry`
+- `website`
+- `authorName`
+- `businessGoal`
+- `targetAudience`
+- `brandVoice`
+- `services`
+- `preferredTopics`
+- `avoidTopics`
+- `seedKeywords`
+- `seoFocus`
+
+API endpoints:
+
+- `GET /projects/:projectId/profile`
+- `POST /projects/:projectId/profile`
+- `PUT /projects/:projectId/profile`
+- `DELETE /projects/:projectId/profile`
+
+Architecture:
+
+- `project-profile.repository.ts` keeps all SQL in the repository layer
+- `project-profile.service.ts` handles validation, CRUD behavior, and defaults
+- `MemoryService` loads the profile and passes it into `TopicPlannerService`
+- Hermes continues to call only `POST /memory`
 
 ## Topic Planning Lifecycle
 
 Autonomous topic planning uses the existing repository and retrieval boundaries:
 
-1. Load all project content through `ContentRepository.listByProjectId(...)`.
-2. Analyze publishing history, categories, keywords, recent articles, stale content, and metadata.
-3. Identify:
+1. Load the project profile through `ProjectProfileRepository.getByProjectId(...)`.
+2. Load all project content through `ContentRepository.listByProjectId(...)`.
+3. Analyze publishing history, categories, keywords, recent articles, stale content, profile metadata, and content metadata.
+4. Use brand metadata like `services`, `preferredTopics`, `avoidTopics`, `seedKeywords`, and `seoFocus` to improve candidate quality.
+5. Identify:
    - over-written topics
    - under-written topics
    - missing clusters
    - stale content
    - high-value gaps
-4. Generate deterministic candidate topics from those gaps.
-5. Validate candidate length, slug safety, and SEO friendliness.
-6. Run duplicate detection with the existing semantic similarity path.
-7. Rank remaining candidates and choose the highest-scoring topic.
-8. Re-enter the existing Memory planning flow using the selected topic.
+6. Generate deterministic candidate topics from those gaps.
+7. Validate candidate length, slug safety, and SEO friendliness.
+8. Run duplicate detection with the existing semantic similarity path.
+9. Rank remaining candidates and choose the highest-scoring topic.
+10. Re-enter the existing Memory planning flow using the selected topic.
+
+## Why Profiles Matter
+
+Without project-level metadata, topic planning can overfit to weak categories or generic content labels.
+
+Project profiles improve topic quality by:
+
+- preferring business-relevant services and seed keywords
+- discouraging avoided topics
+- grounding topic choices in brand and industry context
+- keeping that knowledge inside AI Memory rather than Hermes
 
 ## Duplicate Prevention
 

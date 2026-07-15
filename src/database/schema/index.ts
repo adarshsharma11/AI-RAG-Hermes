@@ -22,6 +22,7 @@ import {
 } from "../../config/constants.js";
 
 type JsonRecord = Record<string, unknown>;
+type JsonStringArray = string[];
 
 const auditColumns = {
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -216,10 +217,56 @@ export const contextCache = pgTable(
   ],
 );
 
+export const projectProfiles = pgTable(
+  "project_profiles",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .references(() => projects.id, { onDelete: "cascade" })
+      .notNull(),
+    brandName: text("brand_name").notNull(),
+    industry: text("industry").notNull(),
+    website: text("website"),
+    authorName: text("author_name"),
+    businessGoal: text("business_goal"),
+    targetAudience: jsonb("target_audience")
+      .$type<JsonStringArray>()
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    brandVoice: jsonb("brand_voice")
+      .$type<JsonStringArray>()
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    services: jsonb("services")
+      .$type<JsonStringArray>()
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    preferredTopics: jsonb("preferred_topics")
+      .$type<JsonStringArray>()
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    avoidTopics: jsonb("avoid_topics")
+      .$type<JsonStringArray>()
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    seedKeywords: jsonb("seed_keywords")
+      .$type<JsonStringArray>()
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    seoFocus: jsonb("seo_focus")
+      .$type<JsonStringArray>()
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    ...auditColumns,
+  },
+  (table) => [uniqueIndex("project_profiles_project_id_unique").on(table.projectId)],
+);
+
 export const projectsRelations = relations(projects, ({ many }) => ({
   sources: many(sources),
   contentItems: many(contentItems),
   syncLogs: many(syncLogs),
+  projectProfiles: many(projectProfiles),
 }));
 
 export const sourcesRelations = relations(sources, ({ one, many }) => ({
@@ -267,6 +314,13 @@ export const contextCacheRelations = relations(contextCache, ({ one }) => ({
   }),
 }));
 
+export const projectProfilesRelations = relations(projectProfiles, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectProfiles.projectId],
+    references: [projects.id],
+  }),
+}));
+
 export type ProjectRecord = typeof projects.$inferSelect;
 export type NewProjectRecord = typeof projects.$inferInsert;
 
@@ -284,3 +338,6 @@ export type NewEmbeddingJobRecord = typeof embeddingJobs.$inferInsert;
 
 export type ContextCacheRecord = typeof contextCache.$inferSelect;
 export type NewContextCacheRecord = typeof contextCache.$inferInsert;
+
+export type ProjectProfileRecord = typeof projectProfiles.$inferSelect;
+export type NewProjectProfileRecord = typeof projectProfiles.$inferInsert;

@@ -7,6 +7,12 @@ describe("MemoryService", () => {
   it("reuses cached context and returns a full planner response", async () => {
     const repositories: RepositoryContainer = {
       projects: {} as RepositoryContainer["projects"],
+      projectProfiles: {
+        getByProjectId: vi.fn().mockResolvedValue(null),
+        create: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+      },
       sources: {} as RepositoryContainer["sources"],
       content: {} as RepositoryContainer["content"],
       contextCache: {
@@ -161,6 +167,12 @@ describe("MemoryService", () => {
   it("stores context in cache on a cache miss", async () => {
     const repositories: RepositoryContainer = {
       projects: {} as RepositoryContainer["projects"],
+      projectProfiles: {
+        getByProjectId: vi.fn().mockResolvedValue(null),
+        create: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+      },
       sources: {} as RepositoryContainer["sources"],
       content: {} as RepositoryContainer["content"],
       contextCache: {
@@ -244,6 +256,29 @@ describe("MemoryService", () => {
   it("uses the topic planner when topic is omitted", async () => {
     const repositories: RepositoryContainer = {
       projects: {} as RepositoryContainer["projects"],
+      projectProfiles: {
+        getByProjectId: vi.fn().mockResolvedValue({
+          id: "profile-1",
+          projectId: "project-1",
+          brandName: "Hermes",
+          industry: "Home Services",
+          website: null,
+          authorName: null,
+          businessGoal: "Lead generation",
+          targetAudience: ["homeowners"],
+          brandVoice: ["professional"],
+          services: ["bathroom remodeling"],
+          preferredTopics: ["Bathroom vanity lighting ideas"],
+          avoidTopics: ["uncategorized"],
+          seedKeywords: ["vanity lighting"],
+          seoFocus: ["local seo"],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+        create: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+      },
       sources: {} as RepositoryContainer["sources"],
       content: {} as RepositoryContainer["content"],
       contextCache: {
@@ -323,6 +358,10 @@ describe("MemoryService", () => {
 
     expect(topicPlannerService.planTopic).toHaveBeenCalledWith({
       projectId: "project-1",
+      profile: expect.objectContaining({
+        brandName: "Hermes",
+        industry: "Home Services",
+      }),
       seedKeywords: ["vanity lighting"],
     });
     expect(response.topic).toBe("Bathroom vanity lighting ideas");
@@ -336,6 +375,12 @@ describe("MemoryService", () => {
   it("throws NO_TOPIC_AVAILABLE when the planner cannot find a unique topic", async () => {
     const repositories: RepositoryContainer = {
       projects: {} as RepositoryContainer["projects"],
+      projectProfiles: {
+        getByProjectId: vi.fn().mockResolvedValue(null),
+        create: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+      },
       sources: {} as RepositoryContainer["sources"],
       content: {} as RepositoryContainer["content"],
       contextCache: {
@@ -387,6 +432,12 @@ describe("MemoryService", () => {
   it("defaults language and tone when callers omit them", async () => {
     const repositories: RepositoryContainer = {
       projects: {} as RepositoryContainer["projects"],
+      projectProfiles: {
+        getByProjectId: vi.fn().mockResolvedValue(null),
+        create: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+      },
       sources: {} as RepositoryContainer["sources"],
       content: {} as RepositoryContainer["content"],
       contextCache: {

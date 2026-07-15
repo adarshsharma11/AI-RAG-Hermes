@@ -97,6 +97,7 @@ describe("ContextService", () => {
     };
     const repositories: RepositoryContainer = {
       projects: {} as RepositoryContainer["projects"],
+      projectProfiles: {} as RepositoryContainer["projectProfiles"],
       sources: {} as RepositoryContainer["sources"],
       content: {
         create: vi.fn(),

@@ -1,4 +1,7 @@
-import type { ContentItemRecord } from "../../database/schema/index.js";
+import type {
+  ContentItemRecord,
+  ProjectProfileRecord,
+} from "../../database/schema/index.js";
 
 const STOP_WORDS = new Set([
   "a",
@@ -66,11 +69,15 @@ export interface TopicGapAnalysis {
   missingClusters: string[];
   staleContent: string[];
   highValueGaps: TopicGapSeed[];
+  profileKeywords: string[];
+  preferredTopics: string[];
+  avoidTopics: string[];
 }
 
 export interface TopicGapAnalyzer {
   analyze(input: {
     contentItems: ContentItemRecord[];
+    profile?: ProjectProfileRecord | null | undefined;
     seedKeywords?: string[] | undefined;
   }): TopicGapAnalysis;
 }
@@ -196,8 +203,15 @@ const incrementMap = (map: Map<string, number>, key: string): void => {
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(Math.max(value, min), max);
 
+const uniqueNormalizedStrings = (values: readonly string[]): string[] =>
+  [...new Set(
+    values
+      .map((value) => normalizeText(value))
+      .filter((value) => value.length >= 3),
+  )];
+
 export const createTopicGapAnalyzer = (): TopicGapAnalyzer => ({
-  analyze: ({ contentItems, seedKeywords = [] }) => {
+  analyze: ({ contentItems, profile, seedKeywords = [] }) => {
     const now = Date.now();
     const recentThreshold = now - 1000 * 60 * 60 * 24 * 90;
     const staleThreshold = now - 1000 * 60 * 60 * 24 * 180;
@@ -207,6 +221,20 @@ export const createTopicGapAnalyzer = (): TopicGapAnalyzer => ({
       .filter(Boolean);
     const recentTopics: string[] = [];
     const staleContent = new Set<string>();
+    const profileKeywords = uniqueNormalizedStrings([
+      ...seedKeywords,
+      ...(profile?.seedKeywords ?? []),
+      ...(profile?.preferredTopics ?? []),
+      ...(profile?.services ?? []),
+      ...(profile?.seoFocus ?? []),
+      ...(profile?.targetAudience ?? []),
+      ...(profile?.brandVoice ?? []),
+      ...(profile?.industry ? [profile.industry] : []),
+      ...(profile?.brandName ? [profile.brandName] : []),
+      ...(profile?.businessGoal ? [profile.businessGoal] : []),
+    ]);
+    const preferredTopics = uniqueNormalizedStrings(profile?.preferredTopics ?? []);
+    const avoidTopics = uniqueNormalizedStrings(profile?.avoidTopics ?? []);
 
     for (const contentItem of contentItems) {
       const title = contentItem.title?.trim();
@@ -221,8 +249,21 @@ export const createTopicGapAnalyzer = (): TopicGapAnalyzer => ({
       const publishedAt = extractPublishedAt(contentItem);
       const isRecent = publishedAt.getTime() >= recentThreshold;
       const isStale = publishedAt.getTime() < staleThreshold;
-      const bucketCategories = categories.length > 0 ? categories : ["General"];
-      const keywords = buildKeywordPhrases(title, bucketCategories, tags, seedKeywords);
+      const filteredCategories = categories.filter((category) => {
+        const normalizedCategory = normalizeText(category);
+        return normalizedCategory !== "uncategorized";
+      });
+      const bucketCategories = filteredCategories.length > 0
+        ? filteredCategories
+        : profile?.industry
+          ? [profile.industry]
+          : ["General"];
+      const keywords = buildKeywordPhrases(
+        title,
+        bucketCategories,
+        tags,
+        profileKeywords,
+      );
 
       if (isRecent) {
         recentTopics.push(title);
@@ -389,6 +430,9 @@ export const createTopicGapAnalyzer = (): TopicGapAnalyzer => ({
       missingClusters,
       staleContent: [...staleContent].slice(0, 5),
       highValueGaps: rankedSeeds.slice(0, 10),
+      profileKeywords,
+      preferredTopics,
+      avoidTopics,
     };
   },
 });

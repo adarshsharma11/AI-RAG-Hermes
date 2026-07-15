@@ -10,6 +10,10 @@ import {
   type EmbeddingService,
 } from "./embedding.service.js";
 import { createImportService, type ImportService } from "./import.service.js";
+import {
+  createProjectProfileService,
+  type ProjectProfileService,
+} from "./project-profile.service.js";
 import { createSyncService, type SyncService } from "./sync.service.js";
 
 export interface ServiceContainer {
@@ -18,6 +22,7 @@ export interface ServiceContainer {
   embeddings: EmbeddingService;
   imports: ImportService;
   memory: MemoryService;
+  projectProfiles: ProjectProfileService;
   search: SearchService;
   syncs: SyncService;
 }
@@ -84,6 +89,9 @@ export const createServices = ({
       repositories,
       logger,
       env,
+    }),
+    projectProfiles: createProjectProfileService({
+      repositories,
     }),
     syncs: createSyncService({
       repositories,
