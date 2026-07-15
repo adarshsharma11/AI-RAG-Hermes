@@ -78,7 +78,7 @@ export const buildApp = async ({
   });
 
   await app.register(routes);
-  console.log("Routes registered", routes);
+  console.log(app.printRoutes());
 
   return app;
 };
