@@ -7,6 +7,7 @@ describe("GenerationPlanner", () => {
     const planner = createGenerationPlanner();
 
     const result = planner.buildPlan({
+      topic: "Kitchen cabinet hardware",
       duplicateDetection: {
         duplicate: true,
         duplicateScore: 0.93,
@@ -46,6 +47,7 @@ describe("GenerationPlanner", () => {
     });
 
     expect(result).toMatchObject({
+      topic: "Kitchen cabinet hardware",
       duplicate: true,
       duplicateScore: 0.93,
       recommendedCategory: {
@@ -54,6 +56,7 @@ describe("GenerationPlanner", () => {
       recommendedKeywords: {
         slug: "kitchen-cabinet-hardware",
       },
+      internalLinks: [],
     });
     expect(result.warnings).toEqual(
       expect.arrayContaining([

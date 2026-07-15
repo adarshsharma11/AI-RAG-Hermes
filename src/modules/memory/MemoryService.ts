@@ -23,6 +23,11 @@ import {
   type InternalLinkService,
 } from "./InternalLinkService.js";
 import { createSeoService, type SeoService } from "./SeoService.js";
+import {
+  createTopicPlannerService,
+  type TopicPlannerService,
+} from "../topic-planner/index.js";
+import { AppError } from "../../common/errors/AppError.js";
 
 export interface MemoryMetrics {
   memoryRequests: number;
@@ -36,7 +41,7 @@ export interface MemoryService {
     projectId: string;
     provider: string;
     task: string;
-    topic: string;
+    topic?: string | undefined;
     language: string;
     tone: string;
     keywords?: string[] | undefined;
@@ -62,6 +67,7 @@ export interface CreateMemoryServiceOptions {
   internalLinkService?: InternalLinkService | undefined;
   seoService?: SeoService | undefined;
   generationPlanner?: GenerationPlanner | undefined;
+  topicPlannerService?: TopicPlannerService | undefined;
 }
 
 interface MutableMemoryMetrics {
@@ -133,6 +139,12 @@ export const createMemoryService = ({
   internalLinkService = createInternalLinkService(),
   seoService = createSeoService(),
   generationPlanner = createGenerationPlanner(),
+  topicPlannerService = createTopicPlannerService({
+    repositories,
+    searchService,
+    logger,
+    duplicateDetector,
+  }),
 }: CreateMemoryServiceOptions): MemoryService => {
   const metricsState = createMetricsState();
 
@@ -148,6 +160,22 @@ export const createMemoryService = ({
       maxContextCharacters,
     }) => {
       const startedAt = Date.now();
+      const resolvedTopic = topic?.trim()
+        ? topic.trim()
+        : (
+            await topicPlannerService.planTopic({
+              projectId,
+              seedKeywords: keywords,
+            })
+          )?.topic;
+
+      if (!resolvedTopic) {
+        throw new AppError("No unique topic available for this project", {
+          code: "NO_TOPIC_AVAILABLE",
+          statusCode: 409,
+        });
+      }
+
       const maxChunks = clamp(
         env.MEMORY_DEFAULT_CONTEXT,
         1,
@@ -158,7 +186,7 @@ export const createMemoryService = ({
         500,
         env.MAX_CONTEXT_CHARS,
       );
-      const retrievalQuery = buildRetrievalQuery(topic, keywords);
+      const retrievalQuery = buildRetrievalQuery(resolvedTopic, keywords);
       const cacheHash = buildContextCacheHash({
         projectId,
         query: retrievalQuery,
@@ -177,7 +205,7 @@ export const createMemoryService = ({
       if (cachedContext && isContextResponse(cachedContext.response)) {
         context = {
           ...cachedContext.response,
-          query: topic,
+          query: resolvedTopic,
         };
       } else {
         const contextResponse = await contextService.buildContext({
@@ -196,7 +224,7 @@ export const createMemoryService = ({
 
         context = {
           ...contextResponse,
-          query: topic,
+          query: resolvedTopic,
         };
       }
 
@@ -217,11 +245,11 @@ export const createMemoryService = ({
           collection.findIndex((candidate) => candidate.id === article.id) === index,
       );
       const recommendedCategory = categoryService.recommendCategory({
-        topic,
+        topic: resolvedTopic,
         relatedArticles,
       });
       const recommendedInternalLinks = internalLinkService.recommendLinks({
-        topic,
+        topic: resolvedTopic,
         relatedArticles,
         category: recommendedCategory,
         excludeIds: duplicateDetection.matchingArticle
@@ -229,11 +257,12 @@ export const createMemoryService = ({
           : [],
       });
       const seo = seoService.recommend({
-        topic,
+        topic: resolvedTopic,
         keywords,
         language,
       });
       const response = generationPlanner.buildPlan({
+        topic: resolvedTopic,
         duplicateDetection,
         category: recommendedCategory,
         seo,
@@ -258,7 +287,7 @@ export const createMemoryService = ({
       logger.debug(
         {
           projectId,
-          topicLength: topic.length,
+          topicLength: resolvedTopic.length,
           duplicate: response.duplicate,
           duplicateScore: response.duplicateScore,
           contextCharacters: context.totalCharacters,

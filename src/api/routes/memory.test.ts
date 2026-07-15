@@ -52,6 +52,7 @@ afterEach(async () => {
 describe("memory routes", () => {
   it("builds a memory response", async () => {
     const buildMemory = vi.fn().mockResolvedValue({
+      topic: "Kitchen cabinet hardware",
       duplicate: false,
       duplicateScore: 0,
       duplicateMatch: null,
@@ -69,6 +70,7 @@ describe("memory routes", () => {
         slug: "kitchen-cabinet-hardware",
       },
       recommendedInternalLinks: [],
+      internalLinks: [],
       context: {
         query: "Kitchen cabinet hardware",
         documents: [],
@@ -149,9 +151,106 @@ describe("memory routes", () => {
       maxContextCharacters: 10000,
     });
     expect(response.json()).toMatchObject({
+      topic: "Kitchen cabinet hardware",
       recommendedCategory: {
         name: "Kitchen",
       },
+    });
+  });
+
+  it("accepts requests without a topic and lets MemoryService choose one", async () => {
+    const buildMemory = vi.fn().mockResolvedValue({
+      topic: "Bathroom vanity lighting ideas",
+      duplicate: false,
+      duplicateScore: 0,
+      duplicateMatch: null,
+      recommendedCategory: null,
+      recommendedKeywords: {
+        primary: ["bathroom vanity lighting ideas"],
+        title: ["bathroom vanity lighting ideas"],
+        h2: ["vanity lighting"],
+        faq: ["best vanity lighting"],
+        slug: "bathroom-vanity-lighting-ideas",
+      },
+      recommendedInternalLinks: [],
+      internalLinks: [],
+      context: {
+        query: "Bathroom vanity lighting ideas",
+        documents: [],
+        totalCharacters: 0,
+        generatedAt: "2026-07-14T00:00:00.000Z",
+      },
+      relatedArticles: [],
+      warnings: [],
+      generatedAt: "2026-07-14T00:00:00.000Z",
+    });
+    const servicesStub: ServiceContainer = {
+      imports: {
+        importProject: vi.fn(),
+      },
+      content: {
+        listContent: vi.fn(),
+        getContentById: vi.fn(),
+      },
+      context: {
+        buildContext: vi.fn(),
+        getMetrics: vi.fn(),
+      },
+      embeddings: {
+        listJobs: vi.fn(),
+        getJobById: vi.fn(),
+        runPendingJobs: vi.fn(),
+        retryFailedJobs: vi.fn(),
+      },
+      memory: {
+        buildMemory,
+        getMetrics: vi.fn(),
+      },
+      syncs: {
+        syncProject: vi.fn(),
+        getSyncHistory: vi.fn(),
+      },
+      search: {
+        search: vi.fn(),
+        findSimilar: vi.fn(),
+      },
+    };
+
+    app = await buildApp({
+      env: testEnv,
+      logger: createLogger({
+        level: "silent",
+        environment: "test",
+      }),
+      database: databaseStub,
+      repositories: repositoriesStub,
+      services: servicesStub,
+    });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/memory",
+      payload: {
+        projectId: "0f24c4b6-3f76-4d95-8345-03b8520b6612",
+        provider: "wordpress",
+        task: "blog_generation",
+        language: "en",
+        tone: "helpful",
+        keywords: ["vanity lighting"],
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(buildMemory).toHaveBeenCalledWith({
+      projectId: "0f24c4b6-3f76-4d95-8345-03b8520b6612",
+      provider: "wordpress",
+      task: "blog_generation",
+      language: "en",
+      tone: "helpful",
+      keywords: ["vanity lighting"],
+    });
+    expect(response.json()).toMatchObject({
+      topic: "Bathroom vanity lighting ideas",
     });
   });
 

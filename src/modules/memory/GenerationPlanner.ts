@@ -30,12 +30,14 @@ export interface MemoryRelatedArticle {
 }
 
 export interface MemoryResponse {
+  topic: string;
   duplicate: boolean;
   duplicateScore: number;
   duplicateMatch: DuplicateMatch | null;
   recommendedCategory: RecommendedCategory | null;
   recommendedKeywords: RecommendedKeywords;
   recommendedInternalLinks: RecommendedInternalLink[];
+  internalLinks: RecommendedInternalLink[];
   context: ContextResponse;
   relatedArticles: MemoryRelatedArticle[];
   warnings: MemoryWarning[];
@@ -44,6 +46,7 @@ export interface MemoryResponse {
 
 export interface GenerationPlanner {
   buildPlan(input: {
+    topic: string;
     duplicateDetection: DuplicateDetectionResult;
     category: RecommendedCategory | null;
     seo: SeoRecommendations;
@@ -67,6 +70,7 @@ const toRelatedArticle = (article: SearchResultItem): MemoryRelatedArticle => ({
 
 export const createGenerationPlanner = (): GenerationPlanner => ({
   buildPlan: ({
+    topic,
     duplicateDetection,
     category,
     seo,
@@ -107,6 +111,7 @@ export const createGenerationPlanner = (): GenerationPlanner => ({
     });
 
     return {
+      topic,
       duplicate: duplicateDetection.duplicate,
       duplicateScore: duplicateDetection.duplicateScore,
       duplicateMatch: duplicateDetection.matchingArticle,
@@ -119,6 +124,7 @@ export const createGenerationPlanner = (): GenerationPlanner => ({
         slug: seo.recommendedSlug,
       },
       recommendedInternalLinks: internalLinks,
+      internalLinks,
       context,
       relatedArticles: relatedArticles.map(toRelatedArticle),
       warnings,

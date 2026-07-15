@@ -7,7 +7,7 @@ const memoryBodySchema = z.object({
   projectId: z.uuid(),
   provider: z.string().trim().min(1),
   task: z.string().trim().min(1),
-  topic: z.string().trim().min(1),
+  topic: z.string().trim().min(1).optional(),
   language: z.string().trim().min(1),
   tone: z.string().trim().min(1),
   keywords: z.array(z.string().trim().min(1)).optional(),

@@ -128,12 +128,18 @@ describe("MemoryService", () => {
     expect(repositories.contextCache.save).not.toHaveBeenCalled();
     expect(searchService.findSimilar).toHaveBeenCalled();
     expect(response).toMatchObject({
+      topic: "Kitchen cabinet hardware",
       duplicate: true,
       duplicateScore: 0.92,
       recommendedCategory: {
         name: "Kitchen",
       },
       recommendedInternalLinks: [
+        expect.objectContaining({
+          id: "content-3",
+        }),
+      ],
+      internalLinks: [
         expect.objectContaining({
           id: "content-3",
         }),
@@ -233,5 +239,148 @@ describe("MemoryService", () => {
         projectId: "project-1",
       }),
     );
+  });
+
+  it("uses the topic planner when topic is omitted", async () => {
+    const repositories: RepositoryContainer = {
+      projects: {} as RepositoryContainer["projects"],
+      sources: {} as RepositoryContainer["sources"],
+      content: {} as RepositoryContainer["content"],
+      contextCache: {
+        findValidByHash: vi.fn().mockResolvedValue(null),
+        save: vi.fn().mockResolvedValue({
+          id: "cache-1",
+          projectId: "project-1",
+          requestHash: "hash",
+          response: {},
+          expiresAt: new Date(),
+          createdAt: new Date(),
+        }),
+        deleteExpired: vi.fn().mockResolvedValue(0),
+      },
+      embeddingJobs: {} as RepositoryContainer["embeddingJobs"],
+      search: {} as RepositoryContainer["search"],
+      sync: {} as RepositoryContainer["sync"],
+    };
+    const contextService = {
+      buildContext: vi.fn().mockResolvedValue({
+        query: "Bathroom vanity lighting ideas",
+        documents: [],
+        totalCharacters: 0,
+        generatedAt: "2026-07-14T00:00:00.000Z",
+      }),
+      getMetrics: vi.fn(),
+    };
+    const searchService = {
+      search: vi.fn().mockResolvedValue({
+        items: [],
+        metrics: {
+          averageSearchLatency: 1,
+          queries: 1,
+          averageSimilarity: 0,
+          topHitScore: 0,
+        },
+      }),
+      findSimilar: vi.fn().mockResolvedValue({
+        items: [],
+        metrics: {
+          averageSearchLatency: 1,
+          queries: 1,
+          averageSimilarity: 0,
+          topHitScore: 0,
+        },
+      }),
+    };
+    const topicPlannerService = {
+      planTopic: vi.fn().mockResolvedValue({
+        topic: "Bathroom vanity lighting ideas",
+      }),
+    };
+    const service = createMemoryService({
+      repositories,
+      searchService,
+      contextService,
+      logger: {
+        debug: vi.fn(),
+      } as unknown as Parameters<typeof createMemoryService>[0]["logger"],
+      env: {
+        CACHE_TTL: 3600,
+        MEMORY_DEFAULT_CONTEXT: 5,
+        MEMORY_MAX_CONTEXT: 10,
+        MAX_CONTEXT_CHARS: 12000,
+      },
+      topicPlannerService,
+    });
+
+    const response = await service.buildMemory({
+      projectId: "project-1",
+      provider: "wordpress",
+      task: "blog_generation",
+      language: "en",
+      tone: "helpful",
+      keywords: ["vanity lighting"],
+    });
+
+    expect(topicPlannerService.planTopic).toHaveBeenCalledWith({
+      projectId: "project-1",
+      seedKeywords: ["vanity lighting"],
+    });
+    expect(response.topic).toBe("Bathroom vanity lighting ideas");
+    expect(contextService.buildContext).toHaveBeenCalledWith(
+      expect.objectContaining({
+        topic: "Bathroom vanity lighting ideas vanity lighting",
+      }),
+    );
+  });
+
+  it("throws NO_TOPIC_AVAILABLE when the planner cannot find a unique topic", async () => {
+    const repositories: RepositoryContainer = {
+      projects: {} as RepositoryContainer["projects"],
+      sources: {} as RepositoryContainer["sources"],
+      content: {} as RepositoryContainer["content"],
+      contextCache: {
+        findValidByHash: vi.fn(),
+        save: vi.fn(),
+        deleteExpired: vi.fn(),
+      },
+      embeddingJobs: {} as RepositoryContainer["embeddingJobs"],
+      search: {} as RepositoryContainer["search"],
+      sync: {} as RepositoryContainer["sync"],
+    };
+    const service = createMemoryService({
+      repositories,
+      searchService: {
+        search: vi.fn(),
+        findSimilar: vi.fn(),
+      },
+      contextService: {
+        buildContext: vi.fn(),
+        getMetrics: vi.fn(),
+      },
+      logger: {
+        debug: vi.fn(),
+      } as unknown as Parameters<typeof createMemoryService>[0]["logger"],
+      env: {
+        CACHE_TTL: 3600,
+        MEMORY_DEFAULT_CONTEXT: 5,
+        MEMORY_MAX_CONTEXT: 10,
+        MAX_CONTEXT_CHARS: 12000,
+      },
+      topicPlannerService: {
+        planTopic: vi.fn().mockResolvedValue(null),
+      },
+    });
+
+    await expect(
+      service.buildMemory({
+        projectId: "project-1",
+        provider: "wordpress",
+        task: "blog_generation",
+        language: "en",
+        tone: "helpful",
+      }),
+    ).rejects.toMatchObject({
+      code: "NO_TOPIC_AVAILABLE",
+    });
   });
 });

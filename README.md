@@ -31,6 +31,11 @@ Phase 7 keeps the same separation of concerns:
 - `modules/memory/InternalLinkService.ts`: recommends the best internal links using category and semantic relevance.
 - `modules/memory/SeoService.ts`: derives SEO-oriented keywords and slug recommendations from the topic and provided keywords.
 - `modules/memory/CategoryService.ts`: recommends a category from semantically related content and metadata.
+- `modules/topic-planner/TopicPlannerService.ts`: selects the next best blog topic when `/memory` omits `topic`.
+- `modules/topic-planner/TopicGapAnalyzer.ts`: inspects existing project content for stale coverage, missing clusters, and under-written topic space.
+- `modules/topic-planner/TopicGenerator.ts`: builds deterministic candidate topics from content gaps, categories, metadata, and keywords.
+- `modules/topic-planner/TopicValidator.ts`: rejects unsafe, duplicate, or low-quality topic candidates before planning continues.
+- `modules/topic-planner/TopicRanker.ts`: scores candidate topics by gap size, SEO opportunity, freshness, and publishing frequency.
 - `modules/context/ContextAssembler.ts`: chunks content in memory, selects the most relevant snippets, and enforces character limits.
 - `modules/context/ContextRanker.ts`: ranks context candidates with semantic similarity, freshness, content length, published status, and exact keyword match.
 - `modules/context/ContextFilters.ts`: normalizes query keywords, resolves limits, and provides document filtering helpers.
@@ -57,6 +62,7 @@ Implemented through Phase 7:
 - `/context` retrieval API
 - context cache
 - memory planning API
+- autonomous topic planning
 - duplicate-aware generation planning
 - sync logging
 - sync history API
@@ -135,6 +141,13 @@ src/
       InternalLinkService.ts
       MemoryService.ts
       SeoService.ts
+    topic-planner/
+      TopicGapAnalyzer.ts
+      TopicGenerator.ts
+      TopicPlannerService.ts
+      TopicRanker.ts
+      TopicValidator.ts
+      index.ts
     search/
       search.service.ts
   types/
@@ -451,6 +464,62 @@ The planner composes:
 
 The planner does not generate prompts and does not generate blog text.
 
+## Autonomous Topic Planning
+
+When `POST /memory` omits `topic`, AI Memory now selects the next best topic automatically without changing the existing Phase 7 architecture:
+
+```text
+Hermes
+  -> POST /memory (topic optional)
+  -> MemoryService
+  -> TopicPlannerService
+  -> TopicGapAnalyzer
+  -> TopicGenerator
+  -> TopicValidator
+  -> DuplicateDetector / SearchService
+  -> TopicRanker
+  -> selected topic
+  -> existing Memory planning flow
+```
+
+Rules:
+
+- provided topics keep the existing Memory API behavior
+- omitted topics trigger deterministic topic selection
+- no LLM is called
+- no article text or outline is generated
+- duplicate candidates are discarded before the final topic is selected
+
+## Topic Planning Lifecycle
+
+Autonomous topic planning uses the existing repository and retrieval boundaries:
+
+1. Load all project content through `ContentRepository.listByProjectId(...)`.
+2. Analyze publishing history, categories, keywords, recent articles, stale content, and metadata.
+3. Identify:
+   - over-written topics
+   - under-written topics
+   - missing clusters
+   - stale content
+   - high-value gaps
+4. Generate deterministic candidate topics from those gaps.
+5. Validate candidate length, slug safety, and SEO friendliness.
+6. Run duplicate detection with the existing semantic similarity path.
+7. Rank remaining candidates and choose the highest-scoring topic.
+8. Re-enter the existing Memory planning flow using the selected topic.
+
+## Duplicate Prevention
+
+Autonomous topic planning reuses the existing duplicate detection stack:
+
+- `DuplicateDetector` calls `SearchService.findSimilar(...)`
+- `SearchService` applies the configured `SIMILARITY_THRESHOLD`
+- any candidate above that threshold is rejected
+- the planner retries until a unique topic is found or returns `NO_TOPIC_AVAILABLE`
+- topic selection attempts are capped at `20`
+
+This preserves the current semantic-search boundaries and avoids moving SQL into services.
+
 ## Context Cache
 
 Memory requests cache the context bundle when the retrieval inputs match:
@@ -764,7 +833,6 @@ Request:
   "projectId": "project-id",
   "provider": "wordpress",
   "task": "blog_generation",
-  "topic": "Kitchen cabinet hardware",
   "language": "en",
   "tone": "helpful",
   "keywords": ["cabinet pulls", "brass knobs"],
@@ -772,10 +840,17 @@ Request:
 }
 ```
 
+Notes:
+
+- `topic` is now optional
+- when omitted, AI Memory selects the next best topic automatically
+- when provided, existing behavior stays the same
+
 Response:
 
 ```json
 {
+  "topic": "Kitchen cabinet hardware",
   "duplicate": false,
   "duplicateScore": 0,
   "duplicateMatch": null,
@@ -793,6 +868,7 @@ Response:
     "slug": "kitchen-cabinet-hardware"
   },
   "recommendedInternalLinks": [],
+  "internalLinks": [],
   "context": {
     "query": "Kitchen cabinet hardware",
     "documents": [],
@@ -984,6 +1060,11 @@ Covered through Phase 7:
 - SEO recommendation extraction
 - generation planner assembly
 - `/memory` route validation
+- autonomous topic gap analysis
+- deterministic topic generation
+- topic ranking and validation
+- duplicate topic rejection
+- omitted-topic memory planning
 
 ## Migration Commands
 
