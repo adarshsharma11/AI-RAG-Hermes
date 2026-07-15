@@ -383,4 +383,116 @@ describe("MemoryService", () => {
       code: "NO_TOPIC_AVAILABLE",
     });
   });
+
+  it("defaults language and tone when callers omit them", async () => {
+    const repositories: RepositoryContainer = {
+      projects: {} as RepositoryContainer["projects"],
+      sources: {} as RepositoryContainer["sources"],
+      content: {} as RepositoryContainer["content"],
+      contextCache: {
+        findValidByHash: vi.fn().mockResolvedValue(null),
+        save: vi.fn().mockResolvedValue({
+          id: "cache-1",
+          projectId: "project-1",
+          requestHash: "hash",
+          response: {},
+          expiresAt: new Date(),
+          createdAt: new Date(),
+        }),
+        deleteExpired: vi.fn().mockResolvedValue(0),
+      },
+      embeddingJobs: {} as RepositoryContainer["embeddingJobs"],
+      search: {} as RepositoryContainer["search"],
+      sync: {} as RepositoryContainer["sync"],
+    };
+    const contextService = {
+      buildContext: vi.fn().mockResolvedValue({
+        query: "Bathroom vanity lighting ideas",
+        documents: [],
+        totalCharacters: 0,
+        generatedAt: "2026-07-14T00:00:00.000Z",
+      }),
+      getMetrics: vi.fn(),
+    };
+    const searchService = {
+      search: vi.fn().mockResolvedValue({
+        items: [],
+        metrics: {
+          averageSearchLatency: 1,
+          queries: 1,
+          averageSimilarity: 0,
+          topHitScore: 0,
+        },
+      }),
+      findSimilar: vi.fn().mockResolvedValue({
+        items: [],
+        metrics: {
+          averageSearchLatency: 1,
+          queries: 1,
+          averageSimilarity: 0,
+          topHitScore: 0,
+        },
+      }),
+    };
+    const generationPlanner = {
+      buildPlan: vi.fn().mockReturnValue({
+        topic: "Bathroom vanity lighting ideas",
+        duplicate: false,
+        duplicateScore: 0,
+        duplicateMatch: null,
+        recommendedCategory: null,
+        recommendedKeywords: {
+          primary: [],
+          title: [],
+          h2: [],
+          faq: [],
+          slug: "bathroom-vanity-lighting-ideas",
+        },
+        recommendedInternalLinks: [],
+        internalLinks: [],
+        context: {
+          query: "Bathroom vanity lighting ideas",
+          documents: [],
+          totalCharacters: 0,
+          generatedAt: "2026-07-14T00:00:00.000Z",
+        },
+        relatedArticles: [],
+        warnings: [],
+        generatedAt: "2026-07-14T00:00:00.000Z",
+      }),
+    };
+    const service = createMemoryService({
+      repositories,
+      searchService,
+      contextService,
+      logger: {
+        debug: vi.fn(),
+      } as unknown as Parameters<typeof createMemoryService>[0]["logger"],
+      env: {
+        CACHE_TTL: 3600,
+        MEMORY_DEFAULT_CONTEXT: 5,
+        MEMORY_MAX_CONTEXT: 10,
+        MAX_CONTEXT_CHARS: 12000,
+      },
+      topicPlannerService: {
+        planTopic: vi.fn().mockResolvedValue({
+          topic: "Bathroom vanity lighting ideas",
+        }),
+      },
+      generationPlanner: generationPlanner as never,
+    });
+
+    await service.buildMemory({
+      projectId: "project-1",
+      provider: "wordpress",
+      task: "blog_generation",
+    });
+
+    expect(generationPlanner.buildPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        language: "en",
+        tone: "professional",
+      }),
+    );
+  });
 });

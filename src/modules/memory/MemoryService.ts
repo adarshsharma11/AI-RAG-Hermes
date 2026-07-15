@@ -42,8 +42,8 @@ export interface MemoryService {
     provider: string;
     task: string;
     topic?: string | undefined;
-    language: string;
-    tone: string;
+    language?: string | undefined;
+    tone?: string | undefined;
     keywords?: string[] | undefined;
     maxContextCharacters?: number | undefined;
   }): Promise<MemoryResponse>;
@@ -154,8 +154,8 @@ export const createMemoryService = ({
       provider,
       task,
       topic,
-      language,
-      tone,
+      language = "en",
+      tone = "professional",
       keywords = [],
       maxContextCharacters,
     }) => {

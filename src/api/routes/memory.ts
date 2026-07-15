@@ -8,8 +8,8 @@ const memoryBodySchema = z.object({
   provider: z.string().trim().min(1),
   task: z.string().trim().min(1),
   topic: z.string().trim().min(1).optional(),
-  language: z.string().trim().min(1),
-  tone: z.string().trim().min(1),
+  language: z.string().trim().min(1).optional().default("en"),
+  tone: z.string().trim().min(1).optional().default("professional"),
   keywords: z.array(z.string().trim().min(1)).optional(),
   maxContextCharacters: z.coerce.number().int().min(1).optional(),
 });

@@ -158,7 +158,7 @@ describe("memory routes", () => {
     });
   });
 
-  it("accepts requests without a topic and lets MemoryService choose one", async () => {
+  it("accepts requests without topic, language, or tone and applies defaults", async () => {
     const buildMemory = vi.fn().mockResolvedValue({
       topic: "Bathroom vanity lighting ideas",
       duplicate: false,
@@ -234,8 +234,6 @@ describe("memory routes", () => {
         projectId: "0f24c4b6-3f76-4d95-8345-03b8520b6612",
         provider: "wordpress",
         task: "blog_generation",
-        language: "en",
-        tone: "helpful",
         keywords: ["vanity lighting"],
       },
     });
@@ -246,7 +244,7 @@ describe("memory routes", () => {
       provider: "wordpress",
       task: "blog_generation",
       language: "en",
-      tone: "helpful",
+      tone: "professional",
       keywords: ["vanity lighting"],
     });
     expect(response.json()).toMatchObject({
