@@ -161,6 +161,13 @@ describe("MemoryService", () => {
       topic: "Kitchen cabinet hardware",
       duplicate: true,
       duplicateScore: 0.92,
+      generationBrief: {
+        objective: "Educate business leaders",
+        audience: "Business Owners, Founders, Executives",
+        tone: "Helpful",
+        language: "English",
+        wordCount: "1000-1200",
+      },
       seo: {
         slug: "kitchen-cabinet-hardware",
         primaryKeyword: "Kitchen Cabinet Hardware",
@@ -530,6 +537,13 @@ describe("MemoryService", () => {
         duplicate: false,
         duplicateScore: 0,
         duplicateMatch: null,
+        generationBrief: {
+          objective: "Educate target readers",
+          audience: "Business Owners, Founders, Executives",
+          tone: "Professional",
+          language: "English",
+          wordCount: "1000-1200",
+        },
         recommendedCategory: null,
         recommendedKeywords: {
           primary: [],

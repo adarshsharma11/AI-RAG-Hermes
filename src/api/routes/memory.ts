@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
 import { AppError } from "../../common/errors/AppError.js";
+import { toApiMemoryResponse } from "./memory-response.js";
 
 const memoryBodySchema = z.object({
   projectId: z.uuid(),
@@ -28,6 +29,7 @@ export const memoryRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
-    return app.container.services.memory.buildMemory(parsedBody.data);
+    const response = await app.container.services.memory.buildMemory(parsedBody.data);
+    return toApiMemoryResponse(response);
   });
 };

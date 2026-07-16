@@ -67,6 +67,13 @@ describe("GenerationPlanner", () => {
       topic: "Kitchen cabinet hardware",
       duplicate: true,
       duplicateScore: 0.93,
+      generationBrief: {
+        objective: "Educate business leaders",
+        audience: "Business Owners, Founders, Executives",
+        tone: "Helpful",
+        language: "English",
+        wordCount: "1000-1200",
+      },
       recommendedCategory: {
         name: "Kitchen",
       },

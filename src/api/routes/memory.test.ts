@@ -56,6 +56,13 @@ describe("memory routes", () => {
       duplicate: false,
       duplicateScore: 0,
       duplicateMatch: null,
+      generationBrief: {
+        objective: "Educate business leaders",
+        audience: "Business Owners, Founders, Executives",
+        tone: "Professional",
+        language: "English",
+        wordCount: "1000-1200",
+      },
       recommendedCategory: {
         id: "1",
         name: "Kitchen",
@@ -69,16 +76,137 @@ describe("memory routes", () => {
         faq: ["what cabinet hardware to choose"],
         slug: "kitchen-cabinet-hardware",
       },
-      recommendedInternalLinks: [],
+      recommendedInternalLinks: [
+        {
+          id: "link-1",
+          title: "Cabinet Pull Placement Guide",
+          url: "https://example.com/pulls",
+          score: 0.93,
+          excerpt: "How to place cabinet pulls.",
+          category: "Kitchen",
+        },
+        {
+          id: "link-2",
+          title: "Kitchen Hardware Finishes",
+          url: "https://example.com/finishes",
+          score: 0.88,
+          excerpt: "Finishes for kitchens.",
+          category: "Kitchen",
+        },
+        {
+          id: "link-3",
+          title: "Knob vs Pull Comparison",
+          url: "https://example.com/comparison",
+          score: 0.84,
+          excerpt: "Knobs and pulls compared.",
+          category: "Kitchen",
+        },
+        {
+          id: "link-4",
+          title: "Old Link",
+          url: "https://example.com/old-link",
+          score: 0.8,
+          excerpt: "Extra link.",
+          category: "Kitchen",
+        },
+      ],
       internalLinks: [],
+      seo: {
+        title: "Kitchen Cabinet Hardware: What Homeowners Need to Know",
+        slug: "kitchen-cabinet-hardware-what-homeowners-need-to-know",
+        metaTitle: "Kitchen Cabinet Hardware Guide",
+        metaDescription: "Learn how to choose kitchen cabinet hardware with practical guidance for style, function, and installation.",
+        primaryKeyword: "Kitchen Cabinet Hardware Guide",
+        secondaryKeywords: ["Kitchen Cabinet Pull Placement", "Best Kitchen Cabinet Hardware Finishes"],
+        faqKeywords: ["How Do You Choose Kitchen Cabinet Hardware", "What Cabinet Hardware Lasts Longest"],
+        searchIntent: "Informational",
+      },
+      outline: [
+        {
+          heading: "1. Choosing Kitchen Cabinet Hardware",
+          subheadings: [
+            "- Match the finish to the room",
+            "2. Pick the right size",
+          ],
+        },
+      ],
       context: {
         query: "Kitchen cabinet hardware",
-        documents: [],
+        documents: [
+          {
+            id: "doc-1",
+            title: "Cabinet Hardware Basics",
+            url: "https://example.com/basics",
+            score: 0.91,
+            excerpt: "Hardware basics for cabinets.",
+            context: "Cabinet hardware affects usability and design.",
+          },
+        ],
         totalCharacters: 0,
         generatedAt: "2026-07-14T00:00:00.000Z",
       },
-      relatedArticles: [],
-      warnings: [],
+      relatedArticles: [
+        {
+          id: "article-1",
+          title: "Kitchen Hardware Trends",
+          url: "https://example.com/trends",
+          score: 0.82,
+          excerpt: "Trends in cabinet hardware.",
+          category: "Kitchen",
+          publishedAt: "2026-01-01T00:00:00.000Z",
+        },
+        {
+          id: "article-2",
+          title: "Modern Cabinet Pulls",
+          url: "https://example.com/modern-pulls",
+          score: 0.79,
+          excerpt: "Modern pull options.",
+          category: "Kitchen",
+          publishedAt: "2025-11-10T00:00:00.000Z",
+        },
+        {
+          id: "article-3",
+          title: "Brass Hardware Ideas",
+          url: "https://example.com/brass",
+          score: 0.77,
+          excerpt: "Brass hardware inspiration.",
+          category: "Kitchen",
+          publishedAt: "2025-08-05T00:00:00.000Z",
+        },
+        {
+          id: "article-4",
+          title: "Cabinet Knob Placement",
+          url: "https://example.com/knobs",
+          score: 0.73,
+          excerpt: "Knob placement tips.",
+          category: "Kitchen",
+          publishedAt: "2025-05-14T00:00:00.000Z",
+        },
+        {
+          id: "article-5",
+          title: "Hardware Finish Guide",
+          url: "https://example.com/finish-guide",
+          score: 0.7,
+          excerpt: "Guide to finishes.",
+          category: "Kitchen",
+          publishedAt: "2025-03-01T00:00:00.000Z",
+        },
+        {
+          id: "article-6",
+          title: "Extra Article",
+          url: "https://example.com/extra",
+          score: 0.65,
+          excerpt: "Should be truncated.",
+          category: "Kitchen",
+          publishedAt: "2025-01-01T00:00:00.000Z",
+        },
+      ],
+      warnings: [
+        {
+          code: "PLANNER_PROFILE",
+          message: "Planned for task=blog_generation, provider=wordpress, language=en, tone=helpful.",
+        },
+      ],
       generatedAt: "2026-07-14T00:00:00.000Z",
     });
     const servicesStub: ServiceContainer = {
@@ -156,12 +284,94 @@ describe("memory routes", () => {
       keywords: ["cabinet pulls"],
       maxContextCharacters: 10000,
     });
-    expect(response.json()).toMatchObject({
+    const payload = response.json();
+    expect(payload).toMatchObject({
       topic: "Kitchen cabinet hardware",
+      duplicate: false,
+      generationBrief: {
+        wordCount: "1000-1200",
+      },
+      seo: {
+        title: "Kitchen Cabinet Hardware: What Homeowners Need to Know",
+        slug: "kitchen-cabinet-hardware-what-homeowners-need-to-know",
+        metaTitle: "Kitchen Cabinet Hardware Guide",
+        metaDescription:
+          "Learn how to choose kitchen cabinet hardware with practical guidance for style, function, and installation.",
+        primaryKeyword: "Kitchen Cabinet Hardware Guide",
+        secondaryKeywords: [
+          "Kitchen Cabinet Pull Placement",
+          "Best Kitchen Cabinet Hardware Finishes",
+        ],
+        faqKeywords: [
+          "How Do You Choose Kitchen Cabinet Hardware",
+          "What Cabinet Hardware Lasts Longest",
+        ],
+      },
       recommendedCategory: {
         name: "Kitchen",
       },
+      recommendedInternalLinks: [
+        {
+          title: "Cabinet Pull Placement Guide",
+          url: "https://example.com/pulls",
+          anchorText: "Cabinet Pull Placement Guide",
+        },
+        {
+          title: "Kitchen Hardware Finishes",
+          url: "https://example.com/finishes",
+          anchorText: "Kitchen Hardware Finishes",
+        },
+        {
+          title: "Knob vs Pull Comparison",
+          url: "https://example.com/comparison",
+          anchorText: "Knob vs Pull Comparison",
+        },
+      ],
+      outline: [
+        {
+          title: "Choosing Kitchen Cabinet Hardware",
+          points: [
+            "Match the finish to the room",
+            "Pick the right size",
+          ],
+        },
+      ],
+      context: {
+        documents: [
+          {
+            title: "Cabinet Hardware Basics",
+            url: "https://example.com/basics",
+            excerpt: "Hardware basics for cabinets.",
+            context: "Cabinet hardware affects usability and design.",
+          },
+        ],
+        totalCharacters: 0,
+      },
+      warnings: [],
     });
+    expect(payload.relatedArticles).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: "Kitchen Hardware Trends",
+          url: "https://example.com/trends",
+          category: "Kitchen",
+          publishedAt: "2026-01-01T00:00:00.000Z",
+        }),
+      ]),
+    );
+    expect(payload).not.toHaveProperty("duplicateScore");
+    expect(payload).not.toHaveProperty("duplicateMatch");
+    expect(payload).not.toHaveProperty("recommendedKeywords");
+    expect(payload).not.toHaveProperty("internalLinks");
+    expect(payload).not.toHaveProperty("generatedAt");
+    expect(payload.recommendedInternalLinks).toHaveLength(3);
+    expect(payload.relatedArticles).toHaveLength(5);
+    expect(payload.context.documents[0]).not.toHaveProperty("score");
+    expect(payload.context.documents[0]).not.toHaveProperty("id");
+    expect(payload.context).not.toHaveProperty("generatedAt");
+    expect(payload.context).not.toHaveProperty("query");
+    expect(payload.seo).not.toHaveProperty("searchIntent");
+    expect(JSON.stringify(payload).length).toBeLessThan(10_000);
   });
 
   it("accepts requests without topic, language, or tone and applies defaults", async () => {
@@ -170,6 +380,13 @@ describe("memory routes", () => {
       duplicate: false,
       duplicateScore: 0,
       duplicateMatch: null,
+      generationBrief: {
+        objective: "Educate business leaders",
+        audience: "Business Owners, Founders, Executives",
+        tone: "Professional",
+        language: "English",
+        wordCount: "1000-1200",
+      },
       recommendedCategory: null,
       recommendedKeywords: {
         primary: ["bathroom vanity lighting ideas"],
@@ -180,6 +397,17 @@ describe("memory routes", () => {
       },
       recommendedInternalLinks: [],
       internalLinks: [],
+      seo: {
+        title: "Bathroom Vanity Lighting Ideas",
+        slug: "bathroom-vanity-lighting-ideas",
+        metaTitle: "Bathroom Vanity Lighting Ideas",
+        metaDescription: "Bathroom vanity lighting ideas for remodel planning.",
+        primaryKeyword: "Bathroom Vanity Lighting Ideas",
+        secondaryKeywords: ["Vanity Lighting Ideas"],
+        faqKeywords: ["How To Choose Bathroom Vanity Lighting"],
+        searchIntent: "Informational",
+      },
+      outline: [],
       context: {
         query: "Bathroom vanity lighting ideas",
         documents: [],
@@ -261,6 +489,18 @@ describe("memory routes", () => {
     });
     expect(response.json()).toMatchObject({
       topic: "Bathroom vanity lighting ideas",
+      generationBrief: {
+        language: "English",
+        tone: "Professional",
+      },
+      seo: {
+        primaryKeyword: "Bathroom Vanity Lighting Ideas",
+      },
+      context: {
+        documents: [],
+        totalCharacters: 0,
+      },
+      warnings: [],
     });
   });
 

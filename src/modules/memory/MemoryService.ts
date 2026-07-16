@@ -315,6 +315,7 @@ export const createMemoryService = ({
         task,
         language,
         tone,
+        profile: projectProfile,
       });
       const latency = Date.now() - startedAt;
 

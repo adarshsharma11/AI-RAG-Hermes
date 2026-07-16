@@ -1,5 +1,6 @@
 import type { ContextResponse } from "../context/ContextService.js";
 import type { SearchResultItem } from "../search/search.service.js";
+import type { ProjectProfileRecord } from "../../database/schema/index.js";
 import type { RecommendedCategory } from "./CategoryService.js";
 import type {
   DuplicateDetectionResult,
@@ -31,11 +32,20 @@ export interface MemoryRelatedArticle {
   excerpt: string;
 }
 
+export interface GenerationBrief {
+  objective: string;
+  audience: string;
+  tone: string;
+  language: string;
+  wordCount: string;
+}
+
 export interface MemoryResponse {
   topic: string;
   duplicate: boolean;
   duplicateScore: number;
   duplicateMatch: DuplicateMatch | null;
+  generationBrief: GenerationBrief;
   recommendedCategory: RecommendedCategory | null;
   recommendedKeywords: RecommendedKeywords;
   recommendedInternalLinks: RecommendedInternalLink[];
@@ -63,6 +73,7 @@ export interface GenerationPlanner {
     task: string;
     language: string;
     tone: string;
+    profile?: ProjectProfileRecord | null | undefined;
   }): MemoryResponse;
 }
 
@@ -73,6 +84,53 @@ const toRelatedArticle = (article: SearchResultItem): MemoryRelatedArticle => ({
   score: article.score,
   excerpt: article.excerpt,
 });
+
+const titleCase = (value: string): string =>
+  value
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+const formatLanguage = (language: string): string => {
+  const normalized = language.trim().toLowerCase();
+
+  if (normalized === "en" || normalized === "en-us" || normalized === "en-gb") {
+    return "English";
+  }
+
+  return titleCase(normalized.replace(/[-_]/g, " "));
+};
+
+const formatAudience = (
+  profile?: ProjectProfileRecord | null | undefined,
+): string =>
+  profile?.targetAudience?.length
+    ? profile.targetAudience.join(", ")
+    : "Business Owners, Founders, Executives";
+
+const buildObjective = (input: {
+  task: string;
+  audience: string;
+}): string => {
+  const normalizedTask = input.task.trim().toLowerCase();
+  const normalizedAudience = input.audience.toLowerCase();
+
+  if (normalizedTask.includes("blog")) {
+    return normalizedAudience.includes("leader") ||
+        normalizedAudience.includes("owner") ||
+        normalizedAudience.includes("founder") ||
+        normalizedAudience.includes("executive")
+      ? "Educate business leaders"
+      : "Educate target readers";
+  }
+
+  if (normalizedTask.includes("landing") || normalizedTask.includes("conversion")) {
+    return "Convert high-intent readers";
+  }
+
+  return "Educate target readers";
+};
 
 export const createGenerationPlanner = (): GenerationPlanner => ({
   buildPlan: ({
@@ -89,8 +147,10 @@ export const createGenerationPlanner = (): GenerationPlanner => ({
     task,
     language,
     tone,
+    profile,
   }) => {
     const warnings: MemoryWarning[] = [];
+    const audience = formatAudience(profile);
 
     if (duplicateDetection.duplicate) {
       warnings.push({
@@ -123,6 +183,16 @@ export const createGenerationPlanner = (): GenerationPlanner => ({
       duplicate: duplicateDetection.duplicate,
       duplicateScore: duplicateDetection.duplicateScore,
       duplicateMatch: duplicateDetection.matchingArticle,
+      generationBrief: {
+        objective: buildObjective({
+          task,
+          audience,
+        }),
+        audience,
+        tone: titleCase(tone),
+        language: formatLanguage(language),
+        wordCount: "1000-1200",
+      },
       recommendedCategory: category,
       recommendedKeywords: {
         primary: seo.recommendedTitleKeywords,
