@@ -32,6 +32,23 @@ describe("GenerationPlanner", () => {
         recommendedFaqKeywords: ["best cabinet hardware"],
         recommendedSlug: "kitchen-cabinet-hardware",
       },
+      seoBrief: {
+        title: "Kitchen Cabinet Hardware Guide",
+        slug: "kitchen-cabinet-hardware",
+        metaTitle: "Kitchen Cabinet Hardware | Hermes",
+        metaDescription:
+          "Discover kitchen cabinet hardware with practical guidance for homeowners comparing finishes, style, cost, and installation options before they choose.",
+        primaryKeyword: "Kitchen Cabinet Hardware",
+        secondaryKeywords: ["Cabinet Pulls"],
+        faqKeywords: ["How To Choose Kitchen Cabinet Hardware"],
+        searchIntent: "Commercial",
+      },
+      outline: [
+        {
+          heading: "Kitchen Cabinet Hardware: How To Compare Options",
+          subheadings: ["Why Kitchen Cabinet Hardware Matters"],
+        },
+      ],
       context: {
         query: "Kitchen cabinet hardware",
         documents: [],
@@ -56,6 +73,14 @@ describe("GenerationPlanner", () => {
       recommendedKeywords: {
         slug: "kitchen-cabinet-hardware",
       },
+      seo: {
+        title: "Kitchen Cabinet Hardware Guide",
+      },
+      outline: [
+        expect.objectContaining({
+          heading: "Kitchen Cabinet Hardware: How To Compare Options",
+        }),
+      ],
       internalLinks: [],
     });
     expect(result.warnings).toEqual(

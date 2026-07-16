@@ -27,6 +27,9 @@ describe("TopicPlannerService", () => {
           underWrittenTopics: ["Bathroom"],
           missingClusters: [],
           staleContent: [],
+          profileKeywords: [],
+          preferredTopics: [],
+          avoidTopics: [],
           highValueGaps: [
             {
               category: "Kitchen",
@@ -48,9 +51,12 @@ describe("TopicPlannerService", () => {
                 {
                   topic: "Best Kitchen Cabinet Hardware",
                   category: "Kitchen",
+                  semanticUniqueness: 0.5,
                   semanticGap: 0.9,
                   businessValue: 0.8,
                   seoOpportunity: 0.8,
+                  serviceRelevance: 0.7,
+                  internalLinkOpportunity: 0.75,
                   categoryDiversity: 0.4,
                   freshness: 0.7,
                   recentPublishingFrequency: 0.2,
@@ -59,9 +65,12 @@ describe("TopicPlannerService", () => {
                 {
                   topic: "Kitchen Cabinet Hardware Trends",
                   category: "Kitchen",
+                  semanticUniqueness: 0.9,
                   semanticGap: 0.88,
                   businessValue: 0.78,
                   seoOpportunity: 0.82,
+                  serviceRelevance: 0.8,
+                  internalLinkOpportunity: 0.85,
                   categoryDiversity: 0.45,
                   freshness: 0.75,
                   recentPublishingFrequency: 0.15,

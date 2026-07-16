@@ -137,6 +137,10 @@ describe("MemoryService", () => {
       topic: "Kitchen cabinet hardware",
       duplicate: true,
       duplicateScore: 0.92,
+      seo: {
+        slug: "kitchen-cabinet-hardware",
+        primaryKeyword: "Kitchen Cabinet Hardware",
+      },
       recommendedCategory: {
         name: "Kitchen",
       },
@@ -157,6 +161,13 @@ describe("MemoryService", () => {
         totalCharacters: 400,
       },
     });
+    expect(response.outline).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          heading: expect.stringContaining("Kitchen Cabinet Hardware"),
+        }),
+      ]),
+    );
     expect(metrics).toMatchObject({
       memoryRequests: 1,
       duplicateRate: 1,
@@ -501,6 +512,17 @@ describe("MemoryService", () => {
         },
         recommendedInternalLinks: [],
         internalLinks: [],
+        seo: {
+          title: "Bathroom vanity lighting ideas",
+          slug: "bathroom-vanity-lighting-ideas",
+          metaTitle: "Bathroom Vanity Lighting Ideas",
+          metaDescription: "Description",
+          primaryKeyword: "Bathroom Vanity Lighting Ideas",
+          secondaryKeywords: [],
+          faqKeywords: [],
+          searchIntent: "Informational",
+        },
+        outline: [],
         context: {
           query: "Bathroom vanity lighting ideas",
           documents: [],

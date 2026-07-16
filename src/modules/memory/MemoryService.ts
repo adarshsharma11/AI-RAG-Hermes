@@ -22,6 +22,14 @@ import {
   createInternalLinkService,
   type InternalLinkService,
 } from "./InternalLinkService.js";
+import {
+  createOutlinePlannerService,
+  type OutlinePlannerService,
+} from "./OutlinePlannerService.js";
+import {
+  createSeoPlannerService,
+  type SeoPlannerService,
+} from "./SeoPlannerService.js";
 import { createSeoService, type SeoService } from "./SeoService.js";
 import {
   createTopicPlannerService,
@@ -66,6 +74,8 @@ export interface CreateMemoryServiceOptions {
   categoryService?: CategoryService | undefined;
   internalLinkService?: InternalLinkService | undefined;
   seoService?: SeoService | undefined;
+  seoPlannerService?: SeoPlannerService | undefined;
+  outlinePlannerService?: OutlinePlannerService | undefined;
   generationPlanner?: GenerationPlanner | undefined;
   topicPlannerService?: TopicPlannerService | undefined;
 }
@@ -138,6 +148,8 @@ export const createMemoryService = ({
   categoryService = createCategoryService(),
   internalLinkService = createInternalLinkService(),
   seoService = createSeoService(),
+  seoPlannerService = createSeoPlannerService(),
+  outlinePlannerService = createOutlinePlannerService(),
   generationPlanner = createGenerationPlanner(),
   topicPlannerService = createTopicPlannerService({
     repositories,
@@ -265,11 +277,29 @@ export const createMemoryService = ({
         keywords,
         language,
       });
+      const seoBrief = seoPlannerService.plan({
+        topic: resolvedTopic,
+        keywords,
+        language,
+        profile: projectProfile,
+        category: recommendedCategory,
+        relatedArticles,
+        internalLinks: recommendedInternalLinks,
+      });
+      const outline = outlinePlannerService.plan({
+        topic: resolvedTopic,
+        primaryKeyword: seoBrief.primaryKeyword,
+        secondaryKeywords: seoBrief.secondaryKeywords,
+        faqKeywords: seoBrief.faqKeywords,
+        searchIntent: seoBrief.searchIntent,
+      });
       const response = generationPlanner.buildPlan({
         topic: resolvedTopic,
         duplicateDetection,
         category: recommendedCategory,
         seo,
+        seoBrief,
+        outline,
         context,
         internalLinks: recommendedInternalLinks,
         relatedArticles,

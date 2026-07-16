@@ -47,5 +47,8 @@ describe("TopicGenerator", () => {
       "Best Kitchen Cabinet Hardware",
     );
     expect(candidates[0]?.topic).toBeTruthy();
+    expect(candidates[0]?.semanticUniqueness).toBeGreaterThan(0);
+    expect(candidates[0]?.serviceRelevance).toBeGreaterThan(0);
+    expect(candidates[0]?.internalLinkOpportunity).toBeGreaterThan(0);
   });
 });

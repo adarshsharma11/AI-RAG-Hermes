@@ -6,6 +6,8 @@ import type {
   DuplicateMatch,
 } from "./DuplicateDetector.js";
 import type { RecommendedInternalLink } from "./InternalLinkService.js";
+import type { RecommendedOutlineSection } from "./OutlinePlannerService.js";
+import type { SeoBrief } from "./SeoPlannerService.js";
 import type { SeoRecommendations } from "./SeoService.js";
 
 export interface RecommendedKeywords {
@@ -38,6 +40,8 @@ export interface MemoryResponse {
   recommendedKeywords: RecommendedKeywords;
   recommendedInternalLinks: RecommendedInternalLink[];
   internalLinks: RecommendedInternalLink[];
+  seo: SeoBrief;
+  outline: RecommendedOutlineSection[];
   context: ContextResponse;
   relatedArticles: MemoryRelatedArticle[];
   warnings: MemoryWarning[];
@@ -50,6 +54,8 @@ export interface GenerationPlanner {
     duplicateDetection: DuplicateDetectionResult;
     category: RecommendedCategory | null;
     seo: SeoRecommendations;
+    seoBrief: SeoBrief;
+    outline: RecommendedOutlineSection[];
     context: ContextResponse;
     internalLinks: RecommendedInternalLink[];
     relatedArticles: SearchResultItem[];
@@ -74,6 +80,8 @@ export const createGenerationPlanner = (): GenerationPlanner => ({
     duplicateDetection,
     category,
     seo,
+    seoBrief,
+    outline,
     context,
     internalLinks,
     relatedArticles,
@@ -125,6 +133,8 @@ export const createGenerationPlanner = (): GenerationPlanner => ({
       },
       recommendedInternalLinks: internalLinks,
       internalLinks,
+      seo: seoBrief,
+      outline,
       context,
       relatedArticles: relatedArticles.map(toRelatedArticle),
       warnings,

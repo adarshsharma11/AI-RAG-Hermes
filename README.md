@@ -30,6 +30,8 @@ Phase 7 keeps the same separation of concerns:
 - `modules/memory/DuplicateDetector.ts`: reuses semantic similarity to detect topic collisions without any LLM.
 - `modules/memory/InternalLinkService.ts`: recommends the best internal links using category and semantic relevance.
 - `modules/memory/SeoService.ts`: derives SEO-oriented keywords and slug recommendations from the topic and provided keywords.
+- `modules/memory/SeoPlannerService.ts`: assembles the production-ready SEO brief Hermes can reuse directly.
+- `modules/memory/OutlinePlannerService.ts`: recommends a section-by-section H2/H3 outline for the selected topic.
 - `modules/memory/CategoryService.ts`: recommends a category from semantically related content and metadata.
 - `modules/topic-planner/TopicPlannerService.ts`: selects the next best blog topic when `/memory` omits `topic`.
 - `modules/topic-planner/TopicGapAnalyzer.ts`: inspects existing project content for stale coverage, missing clusters, and under-written topic space.
@@ -143,6 +145,8 @@ src/
       GenerationPlanner.ts
       InternalLinkService.ts
       MemoryService.ts
+      OutlinePlannerService.ts
+      SeoPlannerService.ts
       SeoService.ts
     project-profile/
       route handled by `api/routes/project-profile.ts`
@@ -441,7 +445,8 @@ Hermes
   -> SearchService
   -> CategoryService
   -> InternalLinkService
-  -> SeoService
+  -> SeoService / SeoPlannerService
+  -> OutlinePlannerService
   -> GenerationPlanner
   -> generation-ready memory payload
 ```
@@ -462,6 +467,8 @@ The planner composes:
 - duplicate signal and top matching article
 - recommended category
 - recommended keywords for title, H2, FAQ, and slug
+- SEO brief with title, slug, meta fields, primary keyword, secondary keywords, FAQ keywords, and search intent
+- recommended outline with H2/H3 sections
 - recommended internal links
 - related articles
 - reusable context bundle
@@ -546,11 +553,32 @@ Autonomous topic planning uses the existing repository and retrieval boundaries:
    - missing clusters
    - stale content
    - high-value gaps
-6. Generate deterministic candidate topics from those gaps.
+6. Generate 20-50 deterministic long-tail candidate topics from those gaps and profile signals.
 7. Validate candidate length, slug safety, and SEO friendliness.
 8. Run duplicate detection with the existing semantic similarity path.
-9. Rank remaining candidates and choose the highest-scoring topic.
+9. Rank remaining candidates by semantic uniqueness, duplicate score, SEO opportunity, business value, service relevance, internal link opportunity, freshness, and recent publishing frequency.
 10. Re-enter the existing Memory planning flow using the selected topic.
+11. Build an additive SEO brief and outline for the final `/memory` response.
+
+## SEO Content Brief
+
+The Memory API now returns an additive SEO brief so Hermes does not need to invent headline, metadata, or keyword strategy.
+
+Additive `seo` response fields:
+
+- `title`
+- `slug`
+- `metaTitle`
+- `metaDescription`
+- `primaryKeyword`
+- `secondaryKeywords`
+- `faqKeywords`
+- `searchIntent`
+
+Additive `outline` response field:
+
+- 6-8 recommended sections
+- each section includes an H2 heading and supporting H3-style subheadings
 
 ## Why Profiles Matter
 

@@ -26,7 +26,7 @@ import {
 } from "./TopicValidator.js";
 
 const MAX_DUPLICATE_ATTEMPTS = 20;
-const CANDIDATE_BATCH_SIZE = 10;
+const CANDIDATE_BATCH_SIZE = 25;
 
 export interface TopicPlannerResult {
   topic: string;
@@ -136,9 +136,12 @@ export const createTopicPlannerService = ({
           (candidate): TopicCandidate => ({
             topic: candidate.topic,
             category: candidate.category,
+            semanticUniqueness: candidate.semanticUniqueness,
             semanticGap: candidate.semanticGap,
             businessValue: candidate.businessValue,
             seoOpportunity: candidate.seoOpportunity,
+            serviceRelevance: candidate.serviceRelevance,
+            internalLinkOpportunity: candidate.internalLinkOpportunity,
             categoryDiversity: candidate.categoryDiversity,
             freshness: candidate.freshness,
             recentPublishingFrequency: candidate.recentPublishingFrequency,
