@@ -41,7 +41,7 @@ describe("GenerationPlanner", () => {
         primaryKeyword: "Kitchen Cabinet Hardware",
         secondaryKeywords: ["Cabinet Pulls"],
         faqKeywords: ["How To Choose Kitchen Cabinet Hardware"],
-        searchIntent: "Commercial",
+        searchIntent: "Commercial Investigation",
       },
       outline: [
         {

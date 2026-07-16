@@ -12,6 +12,11 @@ export {
   type PlanningSearchIntent,
 } from "./GapDetector.js";
 export {
+  createSearchIntentClassifier,
+  type IntentOpportunity,
+  type SearchIntentClassifier,
+} from "./SearchIntentClassifier.js";
+export {
   createTopicGenerator,
   type TopicCandidate,
   type TopicGenerator,

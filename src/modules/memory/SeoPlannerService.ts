@@ -5,9 +5,11 @@ import type { RecommendedInternalLink } from "./InternalLinkService.js";
 
 export type SearchIntent =
   | "Informational"
-  | "Commercial"
+  | "Commercial Investigation"
   | "Transactional"
-  | "Navigational";
+  | "Comparison"
+  | "Implementation"
+  | "Strategic Planning";
 
 export interface SeoBrief {
   title: string;
@@ -85,74 +87,67 @@ const padToRange = (value: string, minLength: number, maxLength: number): string
 const inferSearchIntent = (topic: string): SearchIntent => {
   const normalized = normalizeText(topic);
 
-  if (/(buy|pricing|cost|quote|service|near me|book)/.test(normalized)) {
+  if (/(comparison|compare|vs|versus|alternative)/.test(normalized)) {
+    return "Comparison";
+  }
+
+  if (/(implementation|rollout|deployment|integration|migration|checklist)/.test(normalized)) {
+    return "Implementation";
+  }
+
+  if (/(service|partner|consulting|scope|quote|project)/.test(normalized)) {
     return "Transactional";
   }
 
-  if (/(best|vs|review|compare|top)/.test(normalized)) {
-    return "Commercial";
+  if (/(buyer|vendor|evaluate|selection|solution|platform)/.test(normalized)) {
+    return "Commercial Investigation";
   }
 
-  if (/(login|portal|contact|website|brand)/.test(normalized)) {
-    return "Navigational";
+  if (/(strategy|roadmap|governance|planning|roi|leadership|leader)/.test(normalized)) {
+    return "Strategic Planning";
   }
 
   return "Informational";
 };
 
-const inferBusinessIntent = (topic: string): "Awareness" | "Evaluation" | "Conversion" => {
-  const normalized = normalizeText(topic);
-
-  if (/(implementation|roadmap|migration|deployment|rollout)/.test(normalized)) {
-    return "Conversion";
-  }
-
-  if (/(roi|comparison|checklist|framework|best practices)/.test(normalized)) {
-    return "Evaluation";
-  }
-
-  return "Awareness";
-};
-
-const extractPrimaryKeyword = (
-  topic: string,
-  keywordPool: readonly string[],
-): string => {
-  const normalizedTopic = normalizeText(topic);
-  const candidate = keywordPool
-    .map((keyword) => normalizeText(keyword))
-    .filter((keyword) => keyword.length >= 4)
-    .find((keyword) => normalizedTopic.includes(keyword));
-
-  if (candidate) {
-    return titleCase(candidate);
-  }
-
-  return titleCase(
-    tokenize(topic)
-      .slice(0, 4)
+const extractPrimaryKeyword = (topic: string): string =>
+  titleCase(
+    normalizeText(topic.replace(/[?!]/g, " "))
+      .split(" ")
+      .filter(Boolean)
       .join(" "),
   );
-};
 
-const buildSeoTitle = (input: {
-  topic: string;
+const deriveStem = (primaryKeyword: string): string =>
+  normalizeText(primaryKeyword)
+    .replace(/^how to (measure|build|implement|compare|evaluate|scope)\s+/, "")
+    .replace(/^what [a-z\s]+ should know about\s+/, "")
+    .replace(/^why\s+/, "")
+    .replace(/^when\s+/, "")
+    .replace(/\bfor \d{4}\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const buildEditorTitle = (input: {
   primaryKeyword: string;
-  industry: string | null;
-  businessIntent: "Awareness" | "Evaluation" | "Conversion";
+  searchIntent: SearchIntent;
 }): string => {
-  const prefix =
-    input.businessIntent === "Conversion"
-      ? "Implementation Guide:"
-      : input.businessIntent === "Evaluation"
-        ? "Executive Guide:"
-        : "Practical Guide:";
-  const suffix = input.industry ? `for ${input.industry}` : "";
+  const { primaryKeyword, searchIntent } = input;
 
-  return trimToLength(
-    uniqueStrings([prefix, input.primaryKeyword, suffix]).join(" "),
-    72,
-  );
+  const title =
+    searchIntent === "Strategic Planning"
+      ? `How Business Leaders Can Build ${primaryKeyword}`
+      : searchIntent === "Implementation"
+        ? `${primaryKeyword}: A Practical Rollout Plan`
+        : searchIntent === "Comparison"
+          ? `${primaryKeyword}: What Decision-Makers Should Compare First`
+          : searchIntent === "Commercial Investigation"
+            ? `${primaryKeyword}: What to Evaluate Before You Commit`
+            : searchIntent === "Transactional"
+              ? `${primaryKeyword}: When to Bring in an Implementation Partner`
+              : `${primaryKeyword}: What Leaders Need to Know`;
+
+  return trimToLength(title, 72);
 };
 
 const buildKeywordPool = (input: {
@@ -185,65 +180,122 @@ const buildKeywordPool = (input: {
 export const createSeoPlannerService = (): SeoPlannerService => ({
   plan: ({
     topic,
-    keywords,
+    keywords: _keywords,
     profile,
     category,
     relatedArticles,
     internalLinks,
   }) => {
     const intent = inferSearchIntent(topic);
-    const businessIntent = inferBusinessIntent(topic);
     const brandName = profile?.brandName?.trim();
-    const industry = profile?.industry?.trim();
     const keywordPool = buildKeywordPool({
       topic,
-      keywords,
+      keywords: _keywords,
       profile,
       category,
       relatedArticles,
       internalLinks,
     });
-    const primaryKeyword = extractPrimaryKeyword(topic, keywordPool);
-    const secondaryKeywords = keywordPool
+    const primaryKeyword = extractPrimaryKeyword(topic);
+    const stem = deriveStem(primaryKeyword);
+    const audience = profile?.targetAudience?.[0]?.trim();
+    const industry = profile?.industry?.trim();
+    const secondaryKeywordCandidates =
+      intent === "Strategic Planning"
+        ? [
+            `${stem} strategy`,
+            `${stem} roadmap`,
+            `${stem} framework`,
+            `how to measure ${stem} roi`,
+            audience ? `${stem} for ${normalizeText(audience)}` : "",
+          ]
+        : intent === "Implementation"
+          ? [
+              `${stem} implementation guide`,
+              `${stem} rollout checklist`,
+              `how to implement ${stem}`,
+              `${stem} implementation roadmap`,
+            ]
+          : intent === "Comparison"
+            ? [
+                `${stem} comparison`,
+                `how to compare ${stem} options`,
+                `${stem} vs traditional automation`,
+                `${stem} evaluation criteria`,
+              ]
+            : intent === "Commercial Investigation"
+              ? [
+                  `${stem} buyer guide`,
+                  `how to evaluate ${stem} solutions`,
+                  `${stem} vendor checklist`,
+                  `${stem} selection criteria`,
+                ]
+              : intent === "Transactional"
+                ? [
+                    `${stem} implementation partner`,
+                    `${stem} consulting services`,
+                    `how to scope ${stem} project`,
+                    `${stem} service engagement`,
+                  ]
+                : [
+                    `${stem} best practices`,
+                    `${stem} explained`,
+                    `${stem} examples`,
+                    `${stem} common mistakes`,
+                  ];
+    const stemTokens = new Set(tokenize(stem));
+    const secondaryKeywords = uniqueStrings([
+      ...secondaryKeywordCandidates,
+      ...keywordPool.map((phrase) => normalizeText(phrase)),
+    ])
       .map((phrase) => titleCase(phrase))
       .filter((phrase) => normalizeText(phrase) !== normalizeText(primaryKeyword))
-      .filter((phrase) => !normalizeText(topic).includes(normalizeText(phrase)))
-      .slice(0, 10);
+      .filter((phrase) => tokenize(phrase).length >= 3)
+      .filter((phrase) => {
+        const phraseTokens = tokenize(phrase);
+        const overlap = phraseTokens.filter((token) => stemTokens.has(token)).length;
+        return overlap >= Math.min(2, Math.max(1, stemTokens.size));
+      })
+      .filter((phrase) => !["ai", "enterprise ai", "business ai", "ai agents"].includes(normalizeText(phrase)))
+      .slice(0, 8);
     const faqKeywords = uniqueStrings([
-      intent === "Commercial"
-        ? `How to compare ${normalizeText(primaryKeyword)} options`
-        : `How to implement ${normalizeText(primaryKeyword)}`,
-      `What is the ROI of ${normalizeText(primaryKeyword)}`,
-      `Which teams benefit from ${normalizeText(primaryKeyword)}`,
+      intent === "Comparison"
+        ? `How do you compare ${normalizeText(primaryKeyword)} options`
+        : intent === "Implementation"
+          ? `How do you implement ${normalizeText(primaryKeyword)} successfully`
+          : `What should leaders know about ${normalizeText(primaryKeyword)}`,
+      `How do you measure ROI for ${normalizeText(primaryKeyword)}`,
+      `Which teams should own ${normalizeText(primaryKeyword)}`,
       ...secondaryKeywords.slice(0, 3).map((phrase) =>
         `When should you prioritize ${normalizeText(phrase)}`
       ),
     ])
       .map((phrase) => titleCase(phrase))
       .slice(0, 5);
-    const title = buildSeoTitle({
-      topic,
+    const title = buildEditorTitle({
       primaryKeyword,
-      industry: industry ?? null,
-      businessIntent,
+      searchIntent: intent,
     });
     const metaTitle = trimToLength(
-      uniqueStrings([
-        primaryKeyword,
-        businessIntent === "Conversion" ? "Implementation" : "Guide",
-        brandName ?? category?.name ?? "",
-      ]).join(" | "),
+      brandName
+        ? `${title} | ${brandName}`
+        : title,
       60,
     );
     const metaDescription = padToRange(
       [
-        businessIntent === "Conversion"
-          ? `Plan ${normalizeText(primaryKeyword)} with a practical rollout approach`
-          : `Learn how ${normalizeText(primaryKeyword)} supports measurable business outcomes`,
+        intent === "Implementation"
+          ? `Learn how to execute ${normalizeText(primaryKeyword)} with a practical rollout plan`
+          : intent === "Comparison"
+            ? `Compare the tradeoffs behind ${normalizeText(primaryKeyword)} and choose the right approach`
+            : intent === "Strategic Planning"
+              ? `Build a practical plan for ${normalizeText(primaryKeyword)} with clearer priorities and measurable outcomes`
+              : `Understand ${normalizeText(primaryKeyword)} with practical guidance for business teams`,
         secondaryKeywords[0]
           ? `including ${normalizeText(secondaryKeywords[0])}`
-          : "including strategy, process, and execution guidance",
-        brandName ? `from ${brandName}` : "",
+          : "including strategy, execution, and decision guidance",
+        brandName ? `from ${brandName}` : category?.name ? `for ${category.name}` : "",
+        industry ? `in ${industry}` : "",
       ]
         .filter(Boolean)
         .join(" ")
@@ -256,7 +308,7 @@ export const createSeoPlannerService = (): SeoPlannerService => ({
 
     return {
       title,
-      slug: slugify(uniqueStrings([primaryKeyword, industry ?? ""]).join(" ")),
+      slug: slugify(primaryKeyword),
       metaTitle,
       metaDescription,
       primaryKeyword,

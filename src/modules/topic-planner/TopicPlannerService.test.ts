@@ -62,31 +62,27 @@ describe("TopicPlannerService", () => {
           offset === 0
             ? [
                 {
-                  topic: "Best Kitchen Cabinet Hardware",
+                  topic: "Kitchen Cabinet Hardware Checklist for Homeowners",
                   category: "Kitchen",
+                  searchIntent: "Implementation",
+                  searchDemand: 0.78,
                   semanticUniqueness: 0.5,
-                  semanticGap: 0.9,
                   businessValue: 0.8,
-                  seoOpportunity: 0.8,
-                  serviceRelevance: 0.7,
+                  conversionPotential: 0.84,
                   internalLinkOpportunity: 0.75,
-                  clusterDiversity: 0.4,
-                  freshness: 0.7,
-                  recentPublishingFrequency: 0.2,
+                  topicalAuthority: 0.64,
                   duplicateScore: 0,
                 },
                 {
-                  topic: "Kitchen Cabinet Hardware Trends",
+                  topic: "Kitchen Cabinet Hardware Strategy for Homeowners",
                   category: "Kitchen",
+                  searchIntent: "Strategic Planning",
+                  searchDemand: 0.81,
                   semanticUniqueness: 0.9,
-                  semanticGap: 0.88,
                   businessValue: 0.78,
-                  seoOpportunity: 0.82,
-                  serviceRelevance: 0.8,
+                  conversionPotential: 0.66,
                   internalLinkOpportunity: 0.85,
-                  clusterDiversity: 0.45,
-                  freshness: 0.75,
-                  recentPublishingFrequency: 0.15,
+                  topicalAuthority: 0.69,
                   duplicateScore: 0,
                 },
               ]
@@ -105,9 +101,12 @@ describe("TopicPlannerService", () => {
         validate: vi.fn().mockImplementation(({ topic, duplicateDetection }) => ({
           valid:
             duplicateDetection === undefined ||
-            topic === "Kitchen Cabinet Hardware Trends",
+            topic === "Kitchen Cabinet Hardware Strategy for Homeowners",
           slug: topic.toLowerCase().replace(/\s+/g, "-"),
-          issues: topic === "Kitchen Cabinet Hardware Trends" ? [] : ["TOPIC_TOO_GENERIC"],
+          issues:
+            topic === "Kitchen Cabinet Hardware Strategy for Homeowners"
+              ? []
+              : ["TOPIC_NOT_PUBLISHABLE"],
         })),
       },
     });
@@ -117,7 +116,7 @@ describe("TopicPlannerService", () => {
     });
 
     expect(result).toEqual({
-      topic: "Kitchen Cabinet Hardware Trends",
+      topic: "Kitchen Cabinet Hardware Strategy for Homeowners",
     });
   });
 

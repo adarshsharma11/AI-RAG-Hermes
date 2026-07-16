@@ -58,6 +58,10 @@ export const createTopicValidator = (): TopicValidator => ({
     const historicalSlugSet = new Set(
       historicalSlugs.map((entry) => slugify(entry)),
     );
+    const hasIntentSignal =
+      /\b(how|what|why|when|guide|checklist|framework|roadmap|best practices|roi|comparison|vs|implementation|strategy|plan|leader|team|mistakes)\b/.test(
+        normalizedTopic,
+      );
 
     if (trimmedTopic.length < 12) {
       issues.push("TOPIC_TOO_SHORT");
@@ -69,6 +73,10 @@ export const createTopicValidator = (): TopicValidator => ({
 
     if (words.length < 2) {
       issues.push("TOPIC_NOT_DESCRIPTIVE");
+    }
+
+    if (words.length < 4 || !hasIntentSignal) {
+      issues.push("TOPIC_NOT_PUBLISHABLE");
     }
 
     if (duplicateWordCount > 2) {

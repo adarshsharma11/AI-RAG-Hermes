@@ -11,16 +11,12 @@ export interface TopicRanker {
 const scoreCandidate = (candidate: TopicCandidate): number =>
   Number(
     (
-      candidate.semanticUniqueness * 0.22 +
-      (1 - candidate.duplicateScore) * 0.18 +
-      candidate.seoOpportunity * 0.15 +
-      candidate.businessValue * 0.14 +
-      candidate.serviceRelevance * 0.12 +
-      candidate.internalLinkOpportunity * 0.08 +
-      candidate.freshness * 0.04 +
-      (1 - candidate.recentPublishingFrequency) * 0.03 +
-      candidate.semanticGap * 0.03 +
-      candidate.clusterDiversity * 0.01
+      candidate.searchDemand * 0.25 +
+      candidate.businessValue * 0.22 +
+      candidate.semanticUniqueness * 0.19 +
+      candidate.conversionPotential * 0.15 +
+      candidate.internalLinkOpportunity * 0.1 +
+      candidate.topicalAuthority * 0.09
     ).toFixed(6),
   );
 

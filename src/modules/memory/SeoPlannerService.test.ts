@@ -7,7 +7,7 @@ describe("SeoPlannerService", () => {
     const service = createSeoPlannerService();
 
     const result = service.plan({
-      topic: "Bathroom Vanity Lighting Ideas",
+      topic: "Bathroom Vanity Lighting Implementation Checklist",
       keywords: ["vanity lighting", "bathroom remodel ideas"],
       language: "en",
       profile: {
@@ -21,7 +21,7 @@ describe("SeoPlannerService", () => {
         targetAudience: ["homeowners"],
         brandVoice: ["professional"],
         services: ["bathroom remodeling"],
-        preferredTopics: ["Bathroom vanity lighting ideas"],
+        preferredTopics: ["Bathroom vanity lighting implementation checklist"],
         avoidTopics: [],
         seedKeywords: ["vanity lighting ideas"],
         seoFocus: ["local seo"],
@@ -39,11 +39,20 @@ describe("SeoPlannerService", () => {
     });
 
     expect(result).toMatchObject({
-      slug: "bathroom-vanity-lighting-ideas-home-services",
-      searchIntent: "Informational",
-      primaryKeyword: "Bathroom Vanity Lighting Ideas",
+      slug: "bathroom-vanity-lighting-implementation-checklist",
+      searchIntent: "Implementation",
+      primaryKeyword: "Bathroom Vanity Lighting Implementation Checklist",
     });
+    expect(result.title).toContain("Practical Rollout");
+    expect(result.title).not.toBe(result.primaryKeyword);
     expect(result.secondaryKeywords.length).toBeGreaterThanOrEqual(1);
+    expect(
+      result.secondaryKeywords.every(
+        (keyword) =>
+          keyword.split(" ").length >= 3 &&
+          !["ai", "enterprise ai", "business ai", "ai agents"].includes(keyword.toLowerCase()),
+      ),
+    ).toBe(true);
     expect(result.metaTitle.length).toBeLessThanOrEqual(60);
     expect(result.metaDescription.length).toBeGreaterThanOrEqual(140);
     expect(result.metaDescription.length).toBeLessThanOrEqual(160);

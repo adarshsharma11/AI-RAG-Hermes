@@ -15,6 +15,10 @@ import {
   type GapDetector,
 } from "./GapDetector.js";
 import {
+  createSearchIntentClassifier,
+  type SearchIntentClassifier,
+} from "./SearchIntentClassifier.js";
+import {
   createTopicGenerator,
   type TopicCandidate,
   type TopicGenerator,
@@ -51,6 +55,7 @@ export interface CreateTopicPlannerServiceOptions {
   duplicateDetector?: DuplicateDetector | undefined;
   contentClusterAnalyzer?: ContentClusterAnalyzer | undefined;
   gapDetector?: GapDetector | undefined;
+  searchIntentClassifier?: SearchIntentClassifier | undefined;
   topicGenerator?: TopicGenerator | undefined;
   topicValidator?: TopicValidator | undefined;
   topicRanker?: TopicRanker | undefined;
@@ -63,6 +68,7 @@ export const createTopicPlannerService = ({
   duplicateDetector = createDuplicateDetector({ searchService }),
   contentClusterAnalyzer = createContentClusterAnalyzer(),
   gapDetector = createGapDetector(),
+  searchIntentClassifier = createSearchIntentClassifier(),
   topicGenerator = createTopicGenerator(),
   topicValidator = createTopicValidator(),
   topicRanker = createTopicRanker(),
@@ -89,6 +95,13 @@ export const createTopicPlannerService = ({
       return null;
     }
 
+    const intentOpportunities = searchIntentClassifier.classify({ analysis });
+
+    if (intentOpportunities.length === 0) {
+      logger.debug({ projectId }, "No intent opportunities available for planning");
+      return null;
+    }
+
     let offset = 0;
     let duplicateAttempts = 0;
 
@@ -96,6 +109,7 @@ export const createTopicPlannerService = ({
       const candidates = topicRanker.rankCandidates(
         topicGenerator.generateCandidates({
           analysis,
+          intentOpportunities,
           seedKeywords,
           limit: CANDIDATE_BATCH_SIZE,
           offset,
@@ -157,15 +171,13 @@ export const createTopicPlannerService = ({
           (candidate): TopicCandidate => ({
             topic: candidate.topic,
             category: candidate.category,
+            searchIntent: candidate.searchIntent,
+            searchDemand: candidate.searchDemand,
             semanticUniqueness: candidate.semanticUniqueness,
-            semanticGap: candidate.semanticGap,
             businessValue: candidate.businessValue,
-            seoOpportunity: candidate.seoOpportunity,
-            serviceRelevance: candidate.serviceRelevance,
+            conversionPotential: candidate.conversionPotential,
             internalLinkOpportunity: candidate.internalLinkOpportunity,
-            clusterDiversity: candidate.clusterDiversity,
-            freshness: candidate.freshness,
-            recentPublishingFrequency: candidate.recentPublishingFrequency,
+            topicalAuthority: candidate.topicalAuthority,
             duplicateScore: candidate.duplicateScore,
           }),
         ),

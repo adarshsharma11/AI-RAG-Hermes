@@ -7,9 +7,11 @@ import type { ContentCluster } from "./ContentClusterAnalyzer.js";
 
 export type PlanningSearchIntent =
   | "Informational"
-  | "Commercial"
+  | "Commercial Investigation"
   | "Transactional"
-  | "Navigational";
+  | "Comparison"
+  | "Implementation"
+  | "Strategic Planning";
 
 export type PlanningBusinessIntent =
   | "Awareness"
@@ -76,16 +78,24 @@ const uniqueNormalized = (values: readonly string[]): string[] =>
   [...new Set(values.map((value) => normalizeText(value)).filter((value) => value.length >= 3))];
 
 const inferSearchIntent = (anchor: string): PlanningSearchIntent => {
-  if (/(roi|comparison|vs|best)/.test(anchor)) {
-    return "Commercial";
+  if (/(comparison|compare|vs|versus|alternative)/.test(anchor)) {
+    return "Comparison";
   }
 
-  if (/(implementation|roadmap|rollout|service)/.test(anchor)) {
+  if (/(implementation|rollout|deployment|integration|migration|checklist)/.test(anchor)) {
+    return "Implementation";
+  }
+
+  if (/(service|partner|consulting|quote|agency)/.test(anchor)) {
     return "Transactional";
   }
 
-  if (/(brand|portal|contact)/.test(anchor)) {
-    return "Navigational";
+  if (/(vendor|platform|solution|pricing|buyer|evaluation)/.test(anchor)) {
+    return "Commercial Investigation";
+  }
+
+  if (/(strategy|roadmap|planning|governance|roi|leadership|enterprise)/.test(anchor)) {
+    return "Strategic Planning";
   }
 
   return "Informational";

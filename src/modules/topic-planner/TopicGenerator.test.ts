@@ -52,6 +52,32 @@ describe("TopicGenerator", () => {
           },
         ],
       },
+      intentOpportunities: [
+        {
+          clusterKey: "governance",
+          clusterLabel: "Governance",
+          anchor: "AI Agent Governance",
+          intent: "Strategic Planning",
+          searchDemand: 0.82,
+          businessValue: 0.8,
+          uniqueness: 0.88,
+          conversionPotential: 0.7,
+          internalLinkOpportunity: 0.66,
+          topicalAuthority: 0.64,
+        },
+        {
+          clusterKey: "governance",
+          clusterLabel: "Governance",
+          anchor: "AI Agent Governance",
+          intent: "Implementation",
+          searchDemand: 0.78,
+          businessValue: 0.8,
+          uniqueness: 0.84,
+          conversionPotential: 0.82,
+          internalLinkOpportunity: 0.68,
+          topicalAuthority: 0.64,
+        },
+      ],
       limit: 15,
     });
 
@@ -64,11 +90,12 @@ describe("TopicGenerator", () => {
     );
     expect(candidates[0]?.topic).toBeTruthy();
     expect(candidates[0]?.semanticUniqueness).toBeGreaterThan(0);
-    expect(candidates[0]?.serviceRelevance).toBeGreaterThan(0);
+    expect(candidates[0]?.businessValue).toBeGreaterThan(0);
     expect(candidates[0]?.internalLinkOpportunity).toBeGreaterThan(0);
+    expect(candidates.every((candidate) => candidate.topic.split(" ").length >= 4)).toBe(true);
     expect(
       candidates.some((candidate) =>
-        /guide|checklist|framework|roadmap|best practices|roi|comparison|implementation|mistakes|strategy/i
+        /what|how|checklist|framework|roadmap|best practices|roi|comparison|implementation|mistakes|strategy/i
           .test(candidate.topic)
       ),
     ).toBe(true);
