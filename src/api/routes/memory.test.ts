@@ -123,10 +123,22 @@ describe("memory routes", () => {
       },
       outline: [
         {
-          heading: "1. Choosing Kitchen Cabinet Hardware",
+          heading: "What Needs To Be In Place Before Choosing Kitchen Cabinet Hardware",
           subheadings: [
             "- Match the finish to the room",
             "2. Pick the right size",
+          ],
+        },
+        {
+          heading: "Why Cabinet Hardware Matters for Long-Term Durability",
+          subheadings: [
+            "Durability",
+          ],
+        },
+        {
+          heading: "How To Measure Cabinet Hardware Success",
+          subheadings: [
+            "Track installation quality",
           ],
         },
       ],
@@ -138,11 +150,43 @@ describe("memory routes", () => {
             title: "Cabinet Hardware Basics",
             url: "https://example.com/basics",
             score: 0.91,
-            excerpt: "Hardware basics for cabinets.",
-            context: "Cabinet hardware affects usability and design.",
+            excerpt:
+              "Kitchen cabinet hardware influences layout, usability, style cohesion, cleaning routines, and long-term satisfaction across the entire kitchen. Homeowners often underestimate how much pull placement, finish selection, and hardware durability affect the day-to-day experience of opening drawers, maintaining alignment, and preserving the overall design language of the space during a renovation or refresh.",
+            context:
+              "The most successful projects align cabinet hardware choice with door style, appliance finish, traffic flow, and grip comfort so the finished kitchen feels intentional rather than patched together.",
+          },
+          {
+            id: "doc-2",
+            title: "Cabinet Pull Placement",
+            url: "https://example.com/placement",
+            score: 0.9,
+            excerpt:
+              "Placement standards make cabinet hardware easier to use and more visually consistent. Installers generally work from repeatable measurements so every door and drawer line stays clean, balanced, and ergonomic across the room.",
+            context:
+              "When teams standardize placement before drilling, they reduce rework, avoid crooked installs, and preserve the intended reveal lines between doors and drawers.",
+          },
+          {
+            id: "doc-3",
+            title: "Choosing Durable Finishes",
+            url: "https://example.com/finishes-guide",
+            score: 0.88,
+            excerpt:
+              "Finish durability matters in kitchens because oils, moisture, frequent touch points, and cleaning chemicals quickly reveal weak coatings. Homeowners should compare maintenance needs, scratch resistance, and how each finish ages under daily use.",
+            context:
+              "Brushed and matte finishes often hide fingerprints better than polished surfaces, but design fit and maintenance expectations still need to be weighed together.",
+          },
+          {
+            id: "doc-4",
+            title: "Extra Context Doc",
+            url: "https://example.com/extra-context",
+            score: 0.7,
+            excerpt:
+              "This document should be removed because only the top three context documents should be serialized.",
+            context:
+              "Extra context should not appear in the API payload.",
           },
         ],
-        totalCharacters: 0,
+        totalCharacters: 4200,
         generatedAt: "2026-07-14T00:00:00.000Z",
       },
       relatedArticles: [
@@ -329,11 +373,16 @@ describe("memory routes", () => {
       ],
       outline: [
         {
-          title: "Choosing Kitchen Cabinet Hardware",
-          points: [
-            "Match the finish to the room",
-            "Pick the right size",
-          ],
+          title: "Introduction",
+          points: [],
+        },
+        {
+          title: "Why It Matters",
+          points: [],
+        },
+        {
+          title: "Measuring Success",
+          points: [],
         },
       ],
       context: {
@@ -341,11 +390,23 @@ describe("memory routes", () => {
           {
             title: "Cabinet Hardware Basics",
             url: "https://example.com/basics",
-            excerpt: "Hardware basics for cabinets.",
-            context: "Cabinet hardware affects usability and design.",
+            excerpt:
+              "Kitchen cabinet hardware influences layout, usability, style cohesion, cleaning routines, and long-term satisfaction across the entire kitchen. Homeowners often underestimate how much pull placement, finish selection, and hardware durability affect the day-to-day experience of opening drawers, maintaining alignment, and preserving the overall design language of the space during a renovation or refresh.",
+          },
+          {
+            title: "Cabinet Pull Placement",
+            url: "https://example.com/placement",
+            excerpt:
+              "Placement standards make cabinet hardware easier to use and more visually consistent. Installers generally work from repeatable measurements so every door and drawer line stays clean, balanced, and ergonomic across the room. When teams standardize placement before drilling, they reduce rework, avoid crooked installs, and preserve the intended reveal lines between doors and drawers.",
+          },
+          {
+            title: "Choosing Durable Finishes",
+            url: "https://example.com/finishes-guide",
+            excerpt:
+              "Finish durability matters in kitchens because oils, moisture, frequent touch points, and cleaning chemicals quickly reveal weak coatings. Homeowners should compare maintenance needs, scratch resistance, and how each finish ages under daily use. Brushed and matte finishes often hide fingerprints better than polished surfaces, but design fit and maintenance expectations still need to be weighed together.",
           },
         ],
-        totalCharacters: 0,
+        totalCharacters: expect.any(Number),
       },
       warnings: [],
     });
@@ -366,10 +427,14 @@ describe("memory routes", () => {
     expect(payload).not.toHaveProperty("generatedAt");
     expect(payload.recommendedInternalLinks).toHaveLength(3);
     expect(payload.relatedArticles).toHaveLength(5);
+    expect(payload.outline).toHaveLength(3);
     expect(payload.context.documents[0]).not.toHaveProperty("score");
     expect(payload.context.documents[0]).not.toHaveProperty("id");
+    expect(payload.context.documents[0]).not.toHaveProperty("context");
     expect(payload.context).not.toHaveProperty("generatedAt");
     expect(payload.context).not.toHaveProperty("query");
+    expect(payload.context.documents).toHaveLength(3);
+    expect(payload.context.totalCharacters).toBeLessThanOrEqual(2500);
     expect(payload.seo).not.toHaveProperty("searchIntent");
     expect(JSON.stringify(payload).length).toBeLessThan(10_000);
   });

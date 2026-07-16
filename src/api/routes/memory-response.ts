@@ -9,7 +9,6 @@ export interface ApiContextDocument {
   title: NullableString;
   url: NullableString;
   excerpt: string;
-  context: string;
 }
 
 export interface ApiMemoryResponse {
@@ -55,6 +54,80 @@ const cleanText = (value: string): string =>
     .replace(/^#{1,6}\s+/g, "")
     .replace(/\s+/g, " ")
     .trim();
+
+const clampLength = (value: string, maxLength: number): string => {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  const trimmed = value.slice(0, maxLength);
+  const lastSentence = Math.max(
+    trimmed.lastIndexOf(". "),
+    trimmed.lastIndexOf("? "),
+    trimmed.lastIndexOf("! "),
+  );
+  const lastWord = trimmed.lastIndexOf(" ");
+  const boundary = lastSentence >= 250 ? lastSentence + 1 : lastWord >= 250 ? lastWord : maxLength;
+
+  return trimmed.slice(0, boundary).trim();
+};
+
+const buildExcerpt = (input: {
+  excerpt: string;
+  context?: string | undefined;
+}): string => {
+  const primary = cleanText(input.excerpt);
+
+  if (primary.length >= 400) {
+    return clampLength(primary, 700);
+  }
+
+  const fallback = cleanText([input.excerpt, input.context ?? ""].filter(Boolean).join(" "));
+  return clampLength(fallback || primary, 700);
+};
+
+const normalizeHeadingKey = (value: string): string => cleanText(value).toLowerCase();
+
+const toOutlineTitle = (input: {
+  heading: string;
+  index: number;
+}): string => {
+  const normalized = normalizeHeadingKey(input.heading);
+
+  if (input.index === 0 || /^(what is|what does|introduction|overview)\b/.test(normalized)) {
+    return "Introduction";
+  }
+  if (/\bwhy\b|\bmatters\b|\bimportance\b|\bbenefit\b/.test(normalized)) {
+    return "Why It Matters";
+  }
+  if (/\bconsideration\b|\bcriteria\b|\bevaluate\b|\bframework\b|\bcompare\b|\btradeoff\b/.test(normalized)) {
+    return "Key Considerations";
+  }
+  if (/\bimplement\b|\bimplementation\b|\brollout\b|\broadmap\b|\bstep\b|\bscope\b|\bplan\b/.test(normalized)) {
+    return "Implementation Steps";
+  }
+  if (/\bmistake\b|\brisk\b|\bpitfall\b|\bblocker\b/.test(normalized)) {
+    return "Common Mistakes";
+  }
+  if (/\bmeasure\b|\bmetric\b|\broi\b|\bsuccess\b|\bkpi\b/.test(normalized)) {
+    return "Measuring Success";
+  }
+  if (/\bconclusion\b|\bnext step\b|\bfaq\b|\bquestion\b/.test(normalized)) {
+    return "Conclusion";
+  }
+
+  return (
+    [
+      "Introduction",
+      "Why It Matters",
+      "Key Considerations",
+      "Implementation Steps",
+      "Common Mistakes",
+      "Measuring Success",
+      "Conclusion",
+    ][input.index] ?? "Conclusion"
+  );
+};
 
 const toPhrase = (value: unknown): string => {
   if (typeof value === "string") {
@@ -108,18 +181,34 @@ export const toApiMemoryResponse = (response: MemoryResponse): ApiMemoryResponse
       url: link.url,
       anchorText: cleanText(link.title ?? link.category ?? "Related resource"),
     })),
-  outline: response.outline.map((section) => ({
-    title: cleanText(section.heading),
-    points: section.subheadings.map(cleanText).filter(Boolean),
+  outline: response.outline.map((section, index) => ({
+    title: toOutlineTitle({
+      heading: section.heading,
+      index,
+    }),
+    points: [],
   })),
   context: {
-    documents: response.context.documents.map((document) => ({
+    documents: response.context.documents.slice(0, 3).map((document) => ({
       title: document.title,
       url: document.url,
-      excerpt: cleanText(document.excerpt),
-      context: cleanText(document.context),
+      excerpt: buildExcerpt({
+        excerpt: document.excerpt,
+        context: document.context,
+      }),
     })),
-    totalCharacters: response.context.totalCharacters,
+    totalCharacters: Math.min(
+      2500,
+      response.context.documents
+        .slice(0, 3)
+        .map((document) =>
+          buildExcerpt({
+            excerpt: document.excerpt,
+            context: document.context,
+          }).length,
+        )
+        .reduce((total, length) => total + length, 0),
+    ),
   },
   relatedArticles: response.relatedArticles.slice(0, 5).map((article) => {
     const record = article as unknown as Record<string, unknown>;
