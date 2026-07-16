@@ -286,6 +286,14 @@ export const createMemoryService = ({
         relatedArticles,
         internalLinks: recommendedInternalLinks,
       });
+      await repositories.topicHistory.upsert({
+        projectId,
+        topic: resolvedTopic,
+        slug: seoBrief.slug,
+        primaryKeyword: seoBrief.primaryKeyword,
+        publishedAt: null,
+        status: "PLANNED",
+      });
       const outline = outlinePlannerService.plan({
         topic: resolvedTopic,
         primaryKeyword: seoBrief.primaryKeyword,

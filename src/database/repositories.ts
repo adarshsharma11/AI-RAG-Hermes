@@ -25,6 +25,10 @@ import {
 } from "./search.repository.js";
 import { createSourceRepository, type SourceRepository } from "./source.repository.js";
 import { createSyncRepository, type SyncRepository } from "./sync.repository.js";
+import {
+  createTopicHistoryRepository,
+  type TopicHistoryRepository,
+} from "./topic-history.repository.js";
 
 export interface RepositoryContainer {
   projects: ProjectRepository;
@@ -35,6 +39,7 @@ export interface RepositoryContainer {
   embeddingJobs: EmbeddingJobRepository;
   search: SearchRepository;
   sync: SyncRepository;
+  topicHistory: TopicHistoryRepository;
 }
 
 export const createRepositories = (
@@ -48,4 +53,5 @@ export const createRepositories = (
   embeddingJobs: createEmbeddingJobRepository(databaseClient.db),
   search: createSearchRepository(databaseClient.db),
   sync: createSyncRepository(databaseClient.db),
+  topicHistory: createTopicHistoryRepository(databaseClient.db),
 });

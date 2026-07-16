@@ -31,15 +31,17 @@ Phase 7 keeps the same separation of concerns:
 - `modules/memory/InternalLinkService.ts`: recommends the best internal links using category and semantic relevance.
 - `modules/memory/SeoService.ts`: derives SEO-oriented keywords and slug recommendations from the topic and provided keywords.
 - `modules/memory/SeoPlannerService.ts`: assembles the production-ready SEO brief Hermes can reuse directly.
-- `modules/memory/OutlinePlannerService.ts`: recommends a section-by-section H2/H3 outline for the selected topic.
+- `modules/memory/OutlinePlannerService.ts`: recommends a section-by-section H2/H3 outline based on search intent and business intent.
 - `modules/memory/CategoryService.ts`: recommends a category from semantically related content and metadata.
 - `modules/topic-planner/TopicPlannerService.ts`: selects the next best blog topic when `/memory` omits `topic`.
-- `modules/topic-planner/TopicGapAnalyzer.ts`: inspects existing project content for stale coverage, missing clusters, and under-written topic space.
-- `modules/topic-planner/TopicGenerator.ts`: builds deterministic candidate topics from content gaps, categories, metadata, and keywords.
+- `modules/topic-planner/ContentClusterAnalyzer.ts`: groups existing content and planning history into semantic business clusters such as AI Agents, Governance, RAG, Security, ROI, and Operations.
+- `modules/topic-planner/GapDetector.ts`: combines project profile, services, preferred topics, content coverage, and publishing history to find underrepresented or missing clusters.
+- `modules/topic-planner/TopicGenerator.ts`: builds 50-100 deterministic long-tail candidate topics from reusable business patterns and gap signals.
 - `modules/topic-planner/TopicValidator.ts`: rejects unsafe, duplicate, or low-quality topic candidates before planning continues.
-- `modules/topic-planner/TopicRanker.ts`: scores candidate topics by gap size, SEO opportunity, freshness, and publishing frequency.
+- `modules/topic-planner/TopicRanker.ts`: scores candidate topics by semantic uniqueness, duplicate risk, SEO opportunity, business value, service relevance, internal-link opportunity, freshness, cluster diversity, and publishing frequency.
 - `services/project-profile.service.ts`: validates and manages brand metadata stored per project.
 - `database/project-profile.repository.ts`: owns all SQL for `project_profiles`.
+- `database/topic-history.repository.ts`: owns all SQL for `topic_history`.
 - `api/routes/project-profile.ts`: exposes CRUD endpoints for project profiles.
 - `modules/context/ContextAssembler.ts`: chunks content in memory, selects the most relevant snippets, and enforces character limits.
 - `modules/context/ContextRanker.ts`: ranks context candidates with semantic similarity, freshness, content length, published status, and exact keyword match.
@@ -485,8 +487,10 @@ Hermes
   -> POST /memory (topic optional)
   -> MemoryService
   -> load project profile
+  -> load topic history
   -> TopicPlannerService
-  -> TopicGapAnalyzer
+  -> ContentClusterAnalyzer
+  -> GapDetector
   -> TopicGenerator
   -> TopicValidator
   -> DuplicateDetector / SearchService
@@ -545,24 +549,40 @@ Autonomous topic planning uses the existing repository and retrieval boundaries:
 
 1. Load the project profile through `ProjectProfileRepository.getByProjectId(...)`.
 2. Load all project content through `ContentRepository.listByProjectId(...)`.
-3. Analyze publishing history, categories, keywords, recent articles, stale content, profile metadata, and content metadata.
-4. Use brand metadata like `services`, `preferredTopics`, `avoidTopics`, `seedKeywords`, and `seoFocus` to improve candidate quality.
-5. Identify:
-   - over-written topics
-   - under-written topics
-   - missing clusters
-   - stale content
-   - high-value gaps
-6. Generate 20-50 deterministic long-tail candidate topics from those gaps and profile signals.
-7. Validate candidate length, slug safety, and SEO friendliness.
+3. Load planning history through `TopicHistoryRepository.listByProjectId(...)`.
+4. Group existing articles and historical topics into semantic clusters such as AI Agents, Governance, RAG, Security, ROI, Implementation, Strategy, and Operations.
+5. Use brand metadata like `services`, `preferredTopics`, `avoidTopics`, `seedKeywords`, and `seoFocus` to identify underrepresented or missing clusters.
+6. Generate 50-100 deterministic long-tail candidate topics from reusable patterns such as guide, checklist, framework, roadmap, best practices, ROI, comparison, implementation, mistakes, and strategy.
+7. Validate candidate length, slug safety, historical collisions, and SEO friendliness.
 8. Run duplicate detection with the existing semantic similarity path.
-9. Rank remaining candidates by semantic uniqueness, duplicate score, SEO opportunity, business value, service relevance, internal link opportunity, freshness, and recent publishing frequency.
-10. Re-enter the existing Memory planning flow using the selected topic.
-11. Build an additive SEO brief and outline for the final `/memory` response.
+9. Rank remaining candidates by semantic uniqueness, duplicate similarity, SEO opportunity, business value, service relevance, internal-link opportunity, freshness, cluster diversity, and publishing frequency.
+10. Return only the highest-scoring topic and re-enter the existing Memory planning flow.
+11. Persist the selected topic, slug, and primary keyword into `topic_history` with status `PLANNED`.
+12. Build an additive SEO brief and outline for the final `/memory` response.
+
+## Topic History
+
+AI Memory records planner output in `topic_history` so the same topic does not reappear under slightly different wording.
+
+Stored fields:
+
+- `topic`
+- `slug`
+- `primaryKeyword`
+- `publishedAt`
+- `status`
+
+Planning rules:
+
+- historical slugs block direct topic regeneration
+- historical primary keywords reduce near-duplicate topic variants
+- publishing history influences freshness, cluster diversity, and frequency signals
 
 ## SEO Content Brief
 
 The Memory API now returns an additive SEO brief so Hermes does not need to invent headline, metadata, or keyword strategy.
+
+The SEO brief is derived from the selected topic plus business context rather than copying the topic text verbatim.
 
 Additive `seo` response fields:
 
@@ -579,6 +599,7 @@ Additive `outline` response field:
 
 - 6-8 recommended sections
 - each section includes an H2 heading and supporting H3-style subheadings
+- section structure adapts to search intent and business intent rather than using a generic template
 
 ## Why Profiles Matter
 

@@ -158,6 +158,7 @@ describe("ContextService", () => {
       contextCache: {} as RepositoryContainer["contextCache"],
       embeddingJobs: {} as RepositoryContainer["embeddingJobs"],
       search: {} as RepositoryContainer["search"],
+      topicHistory: {} as RepositoryContainer["topicHistory"],
       sync: {} as RepositoryContainer["sync"],
     };
     const service = createContextService({

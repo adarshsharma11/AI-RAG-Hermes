@@ -20,7 +20,7 @@ const scoreCandidate = (candidate: TopicCandidate): number =>
       candidate.freshness * 0.04 +
       (1 - candidate.recentPublishingFrequency) * 0.03 +
       candidate.semanticGap * 0.03 +
-      candidate.categoryDiversity * 0.01
+      candidate.clusterDiversity * 0.01
     ).toFixed(6),
   );
 

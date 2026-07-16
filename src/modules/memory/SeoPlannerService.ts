@@ -56,6 +56,9 @@ const slugify = (value: string): string =>
 const uniqueStrings = (values: readonly string[]): string[] =>
   [...new Set(values.map((value) => value.trim()).filter(Boolean))];
 
+const tokenize = (value: string): string[] =>
+  normalizeText(value).split(" ").filter((part) => part.length >= 3);
+
 const trimToLength = (value: string, maxLength: number): string => {
   if (value.length <= maxLength) {
     return value;
@@ -97,6 +100,61 @@ const inferSearchIntent = (topic: string): SearchIntent => {
   return "Informational";
 };
 
+const inferBusinessIntent = (topic: string): "Awareness" | "Evaluation" | "Conversion" => {
+  const normalized = normalizeText(topic);
+
+  if (/(implementation|roadmap|migration|deployment|rollout)/.test(normalized)) {
+    return "Conversion";
+  }
+
+  if (/(roi|comparison|checklist|framework|best practices)/.test(normalized)) {
+    return "Evaluation";
+  }
+
+  return "Awareness";
+};
+
+const extractPrimaryKeyword = (
+  topic: string,
+  keywordPool: readonly string[],
+): string => {
+  const normalizedTopic = normalizeText(topic);
+  const candidate = keywordPool
+    .map((keyword) => normalizeText(keyword))
+    .filter((keyword) => keyword.length >= 4)
+    .find((keyword) => normalizedTopic.includes(keyword));
+
+  if (candidate) {
+    return titleCase(candidate);
+  }
+
+  return titleCase(
+    tokenize(topic)
+      .slice(0, 4)
+      .join(" "),
+  );
+};
+
+const buildSeoTitle = (input: {
+  topic: string;
+  primaryKeyword: string;
+  industry: string | null;
+  businessIntent: "Awareness" | "Evaluation" | "Conversion";
+}): string => {
+  const prefix =
+    input.businessIntent === "Conversion"
+      ? "Implementation Guide:"
+      : input.businessIntent === "Evaluation"
+        ? "Executive Guide:"
+        : "Practical Guide:";
+  const suffix = input.industry ? `for ${input.industry}` : "";
+
+  return trimToLength(
+    uniqueStrings([prefix, input.primaryKeyword, suffix]).join(" "),
+    72,
+  );
+};
+
 const buildKeywordPool = (input: {
   topic: string;
   keywords: readonly string[];
@@ -134,6 +192,7 @@ export const createSeoPlannerService = (): SeoPlannerService => ({
     internalLinks,
   }) => {
     const intent = inferSearchIntent(topic);
+    const businessIntent = inferBusinessIntent(topic);
     const brandName = profile?.brandName?.trim();
     const industry = profile?.industry?.trim();
     const keywordPool = buildKeywordPool({
@@ -144,36 +203,46 @@ export const createSeoPlannerService = (): SeoPlannerService => ({
       relatedArticles,
       internalLinks,
     });
-    const primaryKeyword = titleCase(keywordPool[0] ?? topic);
+    const primaryKeyword = extractPrimaryKeyword(topic, keywordPool);
     const secondaryKeywords = keywordPool
-      .slice(1)
       .map((phrase) => titleCase(phrase))
       .filter((phrase) => normalizeText(phrase) !== normalizeText(primaryKeyword))
+      .filter((phrase) => !normalizeText(topic).includes(normalizeText(phrase)))
       .slice(0, 10);
     const faqKeywords = uniqueStrings([
-      `How to choose ${normalizeText(primaryKeyword)}`,
-      `What is the best ${normalizeText(primaryKeyword)}`,
-      `When should you update ${normalizeText(primaryKeyword)}`,
-      ...secondaryKeywords.slice(0, 3).map((phrase) => `Is ${normalizeText(phrase)} worth it`),
+      intent === "Commercial"
+        ? `How to compare ${normalizeText(primaryKeyword)} options`
+        : `How to implement ${normalizeText(primaryKeyword)}`,
+      `What is the ROI of ${normalizeText(primaryKeyword)}`,
+      `Which teams benefit from ${normalizeText(primaryKeyword)}`,
+      ...secondaryKeywords.slice(0, 3).map((phrase) =>
+        `When should you prioritize ${normalizeText(phrase)}`
+      ),
     ])
       .map((phrase) => titleCase(phrase))
       .slice(0, 5);
-    const titleParts = uniqueStrings([
+    const title = buildSeoTitle({
       topic,
-      industry ? `for ${industry}` : "",
-      intent === "Commercial" ? "Best Options" : "",
-    ]).filter(Boolean);
-    const title = trimToLength(titleParts.join(" "), 72);
+      primaryKeyword,
+      industry: industry ?? null,
+      businessIntent,
+    });
     const metaTitle = trimToLength(
-      uniqueStrings([topic, brandName ?? "", category?.name ?? ""]).join(" | "),
+      uniqueStrings([
+        primaryKeyword,
+        businessIntent === "Conversion" ? "Implementation" : "Guide",
+        brandName ?? category?.name ?? "",
+      ]).join(" | "),
       60,
     );
     const metaDescription = padToRange(
       [
-        `Discover ${normalizeText(primaryKeyword)}`,
+        businessIntent === "Conversion"
+          ? `Plan ${normalizeText(primaryKeyword)} with a practical rollout approach`
+          : `Learn how ${normalizeText(primaryKeyword)} supports measurable business outcomes`,
         secondaryKeywords[0]
-          ? `with insights on ${normalizeText(secondaryKeywords[0])}`
-          : "with practical guidance",
+          ? `including ${normalizeText(secondaryKeywords[0])}`
+          : "including strategy, process, and execution guidance",
         brandName ? `from ${brandName}` : "",
       ]
         .filter(Boolean)
@@ -187,7 +256,7 @@ export const createSeoPlannerService = (): SeoPlannerService => ({
 
     return {
       title,
-      slug: slugify(topic),
+      slug: slugify(uniqueStrings([primaryKeyword, industry ?? ""]).join(" ")),
       metaTitle,
       metaDescription,
       primaryKeyword,

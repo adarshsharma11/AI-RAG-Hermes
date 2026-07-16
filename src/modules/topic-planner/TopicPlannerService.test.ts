@@ -9,6 +9,9 @@ describe("TopicPlannerService", () => {
       content: {
         listByProjectId: vi.fn().mockResolvedValue([]),
       },
+      topicHistory: {
+        listByProjectId: vi.fn().mockResolvedValue([]),
+      },
     } as unknown as RepositoryContainer;
     const topicPlanner = createTopicPlannerService({
       repositories,
@@ -19,27 +22,37 @@ describe("TopicPlannerService", () => {
       logger: {
         debug: vi.fn(),
       } as never,
-      topicGapAnalyzer: {
-        analyze: vi.fn().mockReturnValue({
+      contentClusterAnalyzer: {
+        analyze: vi.fn().mockReturnValue([]),
+      },
+      gapDetector: {
+        detect: vi.fn().mockReturnValue({
           existingTopics: ["Kitchen Cabinet Hardware Guide"],
           recentTopics: [],
-          overWrittenTopics: [],
-          underWrittenTopics: ["Bathroom"],
-          missingClusters: [],
-          staleContent: [],
-          profileKeywords: [],
+          historicalTopics: [],
+          historicalSlugs: [],
+          historicalPrimaryKeywords: [],
           preferredTopics: [],
           avoidTopics: [],
-          highValueGaps: [
+          services: ["cabinet hardware"],
+          audiences: ["homeowners"],
+          industries: ["home services"],
+          keywords: ["cabinet pulls"],
+          clusters: [],
+          gaps: [
             {
-              category: "Kitchen",
-              keyword: "Cabinet Hardware",
+              clusterKey: "kitchen",
+              clusterLabel: "Kitchen",
+              anchor: "Cabinet Hardware",
               semanticGap: 0.9,
               businessValue: 0.8,
               seoOpportunity: 0.8,
-              categoryDiversity: 0.4,
+              serviceRelevance: 0.9,
               freshness: 0.7,
-              recentPublishingFrequency: 0.2,
+              clusterDiversity: 0.4,
+              publishingFrequency: 0.2,
+              searchIntent: "Informational",
+              businessIntent: "Evaluation",
             },
           ],
         }),
@@ -57,7 +70,7 @@ describe("TopicPlannerService", () => {
                   seoOpportunity: 0.8,
                   serviceRelevance: 0.7,
                   internalLinkOpportunity: 0.75,
-                  categoryDiversity: 0.4,
+                  clusterDiversity: 0.4,
                   freshness: 0.7,
                   recentPublishingFrequency: 0.2,
                   duplicateScore: 0,
@@ -71,7 +84,7 @@ describe("TopicPlannerService", () => {
                   seoOpportunity: 0.82,
                   serviceRelevance: 0.8,
                   internalLinkOpportunity: 0.85,
-                  categoryDiversity: 0.45,
+                  clusterDiversity: 0.45,
                   freshness: 0.75,
                   recentPublishingFrequency: 0.15,
                   duplicateScore: 0,
@@ -113,6 +126,9 @@ describe("TopicPlannerService", () => {
       content: {
         listByProjectId: vi.fn().mockResolvedValue([]),
       },
+      topicHistory: {
+        listByProjectId: vi.fn().mockResolvedValue([]),
+      },
     } as unknown as RepositoryContainer;
     const topicPlanner = createTopicPlannerService({
       repositories,
@@ -123,26 +139,36 @@ describe("TopicPlannerService", () => {
       logger: {
         debug: vi.fn(),
       } as never,
-      topicGapAnalyzer: {
-        analyze: vi.fn().mockReturnValue({
+      contentClusterAnalyzer: {
+        analyze: vi.fn().mockReturnValue([]),
+      },
+      gapDetector: {
+        detect: vi.fn().mockReturnValue({
           existingTopics: [],
           recentTopics: [],
-          overWrittenTopics: [],
-          underWrittenTopics: ["Kitchen"],
-          missingClusters: [],
-          staleContent: [],
-          profileKeywords: [],
+          historicalTopics: [],
+          historicalSlugs: [],
+          historicalPrimaryKeywords: [],
           preferredTopics: [],
           avoidTopics: [],
-          highValueGaps: Array.from({ length: 4 }, (_, index) => ({
-            category: "Kitchen",
-            keyword: `Cabinet Hardware ${index + 1}`,
+          services: ["cabinet hardware"],
+          audiences: ["operations leaders"],
+          industries: ["home services"],
+          keywords: ["cabinet hardware"],
+          clusters: [],
+          gaps: Array.from({ length: 4 }, (_, index) => ({
+            clusterKey: `kitchen-${index + 1}`,
+            clusterLabel: "Kitchen",
+            anchor: `Cabinet Hardware ${index + 1}`,
             semanticGap: 0.9,
             businessValue: 0.8,
             seoOpportunity: 0.8,
-            categoryDiversity: 0.5,
+            serviceRelevance: 0.9,
+            clusterDiversity: 0.5,
             freshness: 0.7,
-            recentPublishingFrequency: 0.1,
+            publishingFrequency: 0.1,
+            searchIntent: "Informational",
+            businessIntent: "Evaluation",
           })),
         }),
       },

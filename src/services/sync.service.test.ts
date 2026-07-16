@@ -184,6 +184,7 @@ describe("SyncService", () => {
       search: {
         searchByEmbedding: vi.fn(),
       },
+      topicHistory: {} as RepositoryContainer["topicHistory"],
       sync: {
         create: vi.fn().mockResolvedValue(syncLog),
         findById: vi.fn(),

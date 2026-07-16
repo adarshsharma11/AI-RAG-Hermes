@@ -7,9 +7,13 @@ import {
 } from "../memory/DuplicateDetector.js";
 import type { SearchService } from "../search/search.service.js";
 import {
-  createTopicGapAnalyzer,
-  type TopicGapAnalyzer,
-} from "./TopicGapAnalyzer.js";
+  createContentClusterAnalyzer,
+  type ContentClusterAnalyzer,
+} from "./ContentClusterAnalyzer.js";
+import {
+  createGapDetector,
+  type GapDetector,
+} from "./GapDetector.js";
 import {
   createTopicGenerator,
   type TopicCandidate,
@@ -45,7 +49,8 @@ export interface CreateTopicPlannerServiceOptions {
   searchService: SearchService;
   logger: AppLogger;
   duplicateDetector?: DuplicateDetector | undefined;
-  topicGapAnalyzer?: TopicGapAnalyzer | undefined;
+  contentClusterAnalyzer?: ContentClusterAnalyzer | undefined;
+  gapDetector?: GapDetector | undefined;
   topicGenerator?: TopicGenerator | undefined;
   topicValidator?: TopicValidator | undefined;
   topicRanker?: TopicRanker | undefined;
@@ -56,20 +61,30 @@ export const createTopicPlannerService = ({
   searchService,
   logger,
   duplicateDetector = createDuplicateDetector({ searchService }),
-  topicGapAnalyzer = createTopicGapAnalyzer(),
+  contentClusterAnalyzer = createContentClusterAnalyzer(),
+  gapDetector = createGapDetector(),
   topicGenerator = createTopicGenerator(),
   topicValidator = createTopicValidator(),
   topicRanker = createTopicRanker(),
 }: CreateTopicPlannerServiceOptions): TopicPlannerService => ({
   planTopic: async ({ projectId, profile, seedKeywords = [] }) => {
     const contentItems = await repositories.content.listByProjectId(projectId);
-    const analysis = topicGapAnalyzer.analyze({
+    const topicHistory = await repositories.topicHistory.listByProjectId(projectId);
+    const clusters = contentClusterAnalyzer.analyze({
       contentItems,
+      topicHistory,
+      profile,
+      seedKeywords,
+    });
+    const analysis = gapDetector.detect({
+      clusters,
+      contentItems,
+      topicHistory,
       profile,
       seedKeywords,
     });
 
-    if (analysis.highValueGaps.length === 0) {
+    if (analysis.gaps.length === 0) {
       logger.debug({ projectId }, "No topic gaps available for planning");
       return null;
     }
@@ -101,6 +116,9 @@ export const createTopicPlannerService = ({
         const staticValidation = topicValidator.validate({
           topic: candidate.topic,
           existingTopics: analysis.existingTopics,
+          historicalTopics: analysis.historicalTopics,
+          historicalPrimaryKeywords: analysis.historicalPrimaryKeywords,
+          historicalSlugs: analysis.historicalSlugs,
         });
 
         if (!staticValidation.valid) {
@@ -117,6 +135,9 @@ export const createTopicPlannerService = ({
         const validation = topicValidator.validate({
           topic: candidate.topic,
           existingTopics: analysis.existingTopics,
+          historicalTopics: analysis.historicalTopics,
+          historicalPrimaryKeywords: analysis.historicalPrimaryKeywords,
+          historicalSlugs: analysis.historicalSlugs,
           duplicateDetection,
         });
 
@@ -142,7 +163,7 @@ export const createTopicPlannerService = ({
             seoOpportunity: candidate.seoOpportunity,
             serviceRelevance: candidate.serviceRelevance,
             internalLinkOpportunity: candidate.internalLinkOpportunity,
-            categoryDiversity: candidate.categoryDiversity,
+            clusterDiversity: candidate.clusterDiversity,
             freshness: candidate.freshness,
             recentPublishingFrequency: candidate.recentPublishingFrequency,
             duplicateScore: candidate.duplicateScore,

@@ -3,6 +3,22 @@ import { describe, expect, it, vi } from "vitest";
 import type { RepositoryContainer } from "../../database/repositories.js";
 import { createMemoryService } from "./MemoryService.js";
 
+const createTopicHistoryRepositoryStub = (): RepositoryContainer["topicHistory"] => ({
+  listByProjectId: vi.fn().mockResolvedValue([]),
+  getByProjectIdAndSlug: vi.fn().mockResolvedValue(null),
+  upsert: vi.fn().mockImplementation(async (input) => ({
+    id: "topic-history-1",
+    projectId: input.projectId,
+    topic: input.topic,
+    slug: input.slug,
+    primaryKeyword: input.primaryKeyword,
+    publishedAt: input.publishedAt ?? null,
+    status: input.status,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  })),
+});
+
 describe("MemoryService", () => {
   it("reuses cached context and returns a full planner response", async () => {
     const repositories: RepositoryContainer = {
@@ -43,6 +59,7 @@ describe("MemoryService", () => {
       },
       embeddingJobs: {} as RepositoryContainer["embeddingJobs"],
       search: {} as RepositoryContainer["search"],
+      topicHistory: createTopicHistoryRepositoryStub(),
       sync: {} as RepositoryContainer["sync"],
     };
     const contextService = {
@@ -133,6 +150,13 @@ describe("MemoryService", () => {
     expect(contextService.buildContext).not.toHaveBeenCalled();
     expect(repositories.contextCache.save).not.toHaveBeenCalled();
     expect(searchService.findSimilar).toHaveBeenCalled();
+    expect(repositories.topicHistory.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: "project-1",
+        topic: "Kitchen cabinet hardware",
+        slug: "kitchen-cabinet-hardware",
+      }),
+    );
     expect(response).toMatchObject({
       topic: "Kitchen cabinet hardware",
       duplicate: true,
@@ -200,6 +224,7 @@ describe("MemoryService", () => {
       },
       embeddingJobs: {} as RepositoryContainer["embeddingJobs"],
       search: {} as RepositoryContainer["search"],
+      topicHistory: createTopicHistoryRepositoryStub(),
       sync: {} as RepositoryContainer["sync"],
     };
     const contextService = {
@@ -306,6 +331,7 @@ describe("MemoryService", () => {
       },
       embeddingJobs: {} as RepositoryContainer["embeddingJobs"],
       search: {} as RepositoryContainer["search"],
+      topicHistory: createTopicHistoryRepositoryStub(),
       sync: {} as RepositoryContainer["sync"],
     };
     const contextService = {
@@ -401,6 +427,7 @@ describe("MemoryService", () => {
       },
       embeddingJobs: {} as RepositoryContainer["embeddingJobs"],
       search: {} as RepositoryContainer["search"],
+      topicHistory: createTopicHistoryRepositoryStub(),
       sync: {} as RepositoryContainer["sync"],
     };
     const service = createMemoryService({
@@ -465,6 +492,7 @@ describe("MemoryService", () => {
       },
       embeddingJobs: {} as RepositoryContainer["embeddingJobs"],
       search: {} as RepositoryContainer["search"],
+      topicHistory: createTopicHistoryRepositoryStub(),
       sync: {} as RepositoryContainer["sync"],
     };
     const contextService = {

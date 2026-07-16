@@ -22,6 +22,23 @@ const titleCase = (value: string): string =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 
+const inferBusinessIntent = (
+  topic: string,
+  primaryKeyword: string,
+): "Awareness" | "Evaluation" | "Conversion" => {
+  const normalized = `${topic} ${primaryKeyword}`.toLowerCase();
+
+  if (/(implementation|rollout|deployment|migration|roadmap)/.test(normalized)) {
+    return "Conversion";
+  }
+
+  if (/(roi|comparison|checklist|framework|best practices)/.test(normalized)) {
+    return "Evaluation";
+  }
+
+  return "Awareness";
+};
+
 export const createOutlinePlannerService = (): OutlinePlannerService => ({
   plan: ({
     topic,
@@ -30,53 +47,66 @@ export const createOutlinePlannerService = (): OutlinePlannerService => ({
     faqKeywords,
     searchIntent,
   }) => {
+    const businessIntent = inferBusinessIntent(topic, primaryKeyword);
     const supportingKeywords = secondaryKeywords.slice(0, 6);
     const faqSections = faqKeywords.slice(0, 2);
-    const introLabel =
-      searchIntent === "Transactional"
-        ? "When To Hire a Pro"
-        : searchIntent === "Commercial"
-          ? "How To Compare Options"
-          : "What You Need To Know";
+    const introductionHeading =
+      businessIntent === "Conversion"
+        ? `How To Operationalize ${primaryKeyword}`
+        : businessIntent === "Evaluation"
+          ? `How To Evaluate ${primaryKeyword}`
+          : `Why ${primaryKeyword} Matters`;
+    const proofHeading =
+      searchIntent === "Commercial"
+        ? "How Leaders Compare The Options"
+        : searchIntent === "Transactional"
+          ? "What A Successful Rollout Requires"
+          : "What Strong Execution Looks Like";
+    const decisionHeading =
+      businessIntent === "Conversion"
+        ? "Implementation Roadmap"
+        : businessIntent === "Evaluation"
+          ? "Decision Framework"
+          : "Strategy And Best Practices";
 
     return [
       {
-        heading: titleCase(`${topic}: ${introLabel}`),
+        heading: titleCase(introductionHeading),
         subheadings: [
-          titleCase(`Why ${primaryKeyword} matters`),
-          titleCase(`Who benefits most from ${primaryKeyword}`),
+          titleCase(`Business context behind ${primaryKeyword}`),
+          titleCase(`Who should prioritize ${primaryKeyword} now`),
         ],
       },
       {
-        heading: titleCase(`Core Factors That Shape ${primaryKeyword}`),
+        heading: titleCase(proofHeading),
         subheadings: supportingKeywords.slice(0, 2).map((keyword) =>
-          titleCase(`How ${keyword} influences results`)
+          titleCase(`How ${keyword} shapes outcomes`)
         ),
       },
       {
-        heading: titleCase(`Common Mistakes To Avoid With ${primaryKeyword}`),
+        heading: titleCase(decisionHeading),
         subheadings: [
-          titleCase(`Planning mistakes homeowners make`),
-          titleCase(`Quality issues to catch early`),
+          titleCase(`How to sequence priorities and ownership`),
+          titleCase(`Metrics to track during execution`),
         ],
       },
       {
-        heading: titleCase(`Best Practices For ${primaryKeyword}`),
+        heading: titleCase(`Common Mistakes That Undermine ${primaryKeyword}`),
         subheadings: supportingKeywords.slice(2, 4).map((keyword) =>
-          titleCase(`Best practices for ${keyword}`)
+          titleCase(`Mistakes teams make with ${keyword}`)
         ),
       },
       {
-        heading: titleCase(`How To Evaluate Your Options`),
+        heading: titleCase(`How To Build Internal Alignment`),
         subheadings: [
-          titleCase(`Questions to ask before choosing`),
-          titleCase(`How to compare cost, quality, and fit`),
+          titleCase(`Stakeholders and approval checkpoints to involve`),
+          titleCase(`How to connect the topic to business outcomes`),
         ],
       },
       {
-        heading: titleCase(`Internal Resources And Related Reading`),
+        heading: titleCase(`Internal Links And Supporting Resources`),
         subheadings: supportingKeywords.slice(4, 6).map((keyword) =>
-          titleCase(`Related guidance on ${keyword}`)
+          titleCase(`Supporting guidance on ${keyword}`)
         ),
       },
       {

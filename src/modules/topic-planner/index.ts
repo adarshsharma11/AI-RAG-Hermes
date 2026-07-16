@@ -1,9 +1,16 @@
 export {
-  createTopicGapAnalyzer,
-  type TopicGapAnalysis,
-  type TopicGapAnalyzer,
-  type TopicGapSeed,
-} from "./TopicGapAnalyzer.js";
+  createContentClusterAnalyzer,
+  type ContentCluster,
+  type ContentClusterAnalyzer,
+} from "./ContentClusterAnalyzer.js";
+export {
+  createGapDetector,
+  type ClusterGap,
+  type GapDetector,
+  type PlanningBusinessIntent,
+  type PlanningGapAnalysis,
+  type PlanningSearchIntent,
+} from "./GapDetector.js";
 export {
   createTopicGenerator,
   type TopicCandidate,

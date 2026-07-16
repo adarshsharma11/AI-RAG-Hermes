@@ -93,6 +93,7 @@ describe("EmbeddingService", () => {
       search: {
         searchByEmbedding: vi.fn(),
       },
+      topicHistory: {} as RepositoryContainer["topicHistory"],
       sync: {} as RepositoryContainer["sync"],
     };
     const provider = {
@@ -211,6 +212,7 @@ describe("EmbeddingService", () => {
       search: {
         searchByEmbedding: vi.fn(),
       },
+      topicHistory: {} as RepositoryContainer["topicHistory"],
       sync: {} as RepositoryContainer["sync"],
     };
     const provider = {
@@ -322,6 +324,7 @@ describe("EmbeddingService", () => {
       search: {
         searchByEmbedding: vi.fn(),
       },
+      topicHistory: {} as RepositoryContainer["topicHistory"],
       sync: {} as RepositoryContainer["sync"],
     };
     const provider = {

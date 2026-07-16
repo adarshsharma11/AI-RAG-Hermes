@@ -26,12 +26,22 @@ export interface TopicValidator {
   validate(input: {
     topic: string;
     existingTopics: readonly string[];
+    historicalTopics?: readonly string[] | undefined;
+    historicalPrimaryKeywords?: readonly string[] | undefined;
+    historicalSlugs?: readonly string[] | undefined;
     duplicateDetection?: DuplicateDetectionResult | undefined;
   }): TopicValidationResult;
 }
 
 export const createTopicValidator = (): TopicValidator => ({
-  validate: ({ topic, existingTopics, duplicateDetection }) => {
+  validate: ({
+    topic,
+    existingTopics,
+    historicalTopics = [],
+    historicalPrimaryKeywords = [],
+    historicalSlugs = [],
+    duplicateDetection,
+  }) => {
     const issues: string[] = [];
     const trimmedTopic = topic.trim();
     const normalizedTopic = normalizeText(trimmedTopic);
@@ -40,7 +50,13 @@ export const createTopicValidator = (): TopicValidator => ({
     const uniqueWords = new Set(words);
     const duplicateWordCount = words.length - uniqueWords.size;
     const normalizedExistingTopics = new Set(
-      existingTopics.map((entry) => normalizeText(entry)),
+      [...existingTopics, ...historicalTopics].map((entry) => normalizeText(entry)),
+    );
+    const normalizedHistoricalKeywords = new Set(
+      historicalPrimaryKeywords.map((entry) => normalizeText(entry)),
+    );
+    const historicalSlugSet = new Set(
+      historicalSlugs.map((entry) => slugify(entry)),
     );
 
     if (trimmedTopic.length < 12) {
@@ -69,6 +85,18 @@ export const createTopicValidator = (): TopicValidator => ({
 
     if (normalizedExistingTopics.has(normalizedTopic)) {
       issues.push("TOPIC_ALREADY_EXISTS");
+    }
+
+    if (historicalSlugSet.has(slug)) {
+      issues.push("TOPIC_ALREADY_PLANNED");
+    }
+
+    if (
+      [...normalizedHistoricalKeywords].some((keyword) =>
+        keyword.length >= 4 && normalizedTopic.includes(keyword),
+      )
+    ) {
+      issues.push("TOPIC_HISTORY_CONFLICT");
     }
 
     if (duplicateDetection?.duplicate) {

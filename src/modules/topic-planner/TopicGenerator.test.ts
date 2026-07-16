@@ -3,52 +3,74 @@ import { describe, expect, it } from "vitest";
 import { createTopicGenerator } from "./TopicGenerator.js";
 
 describe("TopicGenerator", () => {
-  it("produces deterministic candidates and filters exact existing topics", () => {
+  it("produces long-tail candidates while filtering existing and historical topics", () => {
     const generator = createTopicGenerator();
     const candidates = generator.generateCandidates({
       analysis: {
-        existingTopics: ["Best Kitchen Cabinet Hardware"],
-        recentTopics: ["Kitchen Cabinet Pull Trends"],
-        overWrittenTopics: ["Kitchen"],
-        underWrittenTopics: ["Bathroom"],
-        missingClusters: ["Floating Shelves"],
-        staleContent: [],
-        profileKeywords: ["home services"],
-        preferredTopics: ["Bathroom Vanity Lighting Ideas"],
+        existingTopics: [
+          "AI Agent Governance Guide For IT Leaders In Financial Services",
+        ],
+        recentTopics: ["AI Agent Policy Checklist For Compliance Teams"],
+        historicalTopics: ["Legacy Governance Framework For AI Teams"],
+        historicalSlugs: ["legacy-governance-framework-for-ai-teams"],
+        historicalPrimaryKeywords: ["legacy governance program"],
         avoidTopics: ["uncategorized model ideas"],
-        highValueGaps: [
+        preferredTopics: ["AI Agent Governance Framework"],
+        services: ["ai agent governance"],
+        audiences: ["it leaders", "compliance teams"],
+        industries: ["financial services"],
+        keywords: ["policy automation", "ai controls"],
+        clusters: [
           {
-            category: "Kitchen",
-            keyword: "Cabinet Hardware",
+            key: "governance",
+            label: "Governance",
+            anchor: "AI Agent Governance",
+            keywords: ["AI Agent Governance", "Policy Automation"],
+            articleTitles: ["Legacy Governance Framework For AI Teams"],
+            totalCount: 1,
+            recentCount: 0,
+            historyCount: 1,
+            serviceMatches: 1,
+            preferredMatches: 0,
+            lastPublishedAt: new Date("2024-01-01T00:00:00.000Z"),
+          },
+        ],
+        gaps: [
+          {
+            clusterKey: "governance",
+            clusterLabel: "Governance",
+            anchor: "AI Agent Governance",
             semanticGap: 0.9,
             businessValue: 0.8,
             seoOpportunity: 0.85,
-            categoryDiversity: 0.4,
+            serviceRelevance: 0.95,
+            clusterDiversity: 0.4,
             freshness: 0.7,
-            recentPublishingFrequency: 0.2,
-          },
-          {
-            category: "Bathroom",
-            keyword: "Vanity Lighting",
-            semanticGap: 0.88,
-            businessValue: 0.82,
-            seoOpportunity: 0.8,
-            categoryDiversity: 0.7,
-            freshness: 0.9,
-            recentPublishingFrequency: 0.1,
+            publishingFrequency: 0.2,
+            searchIntent: "Informational",
+            businessIntent: "Evaluation",
           },
         ],
       },
-      limit: 10,
+      limit: 15,
     });
 
-    expect(candidates).toHaveLength(10);
+    expect(candidates.length).toBeGreaterThanOrEqual(10);
     expect(candidates.map((candidate) => candidate.topic)).not.toContain(
-      "Best Kitchen Cabinet Hardware",
+      "AI Agent Governance Guide For IT Leaders In Financial Services",
+    );
+    expect(candidates.map((candidate) => candidate.topic)).not.toContain(
+      "Legacy Governance Framework For AI Teams",
     );
     expect(candidates[0]?.topic).toBeTruthy();
     expect(candidates[0]?.semanticUniqueness).toBeGreaterThan(0);
     expect(candidates[0]?.serviceRelevance).toBeGreaterThan(0);
     expect(candidates[0]?.internalLinkOpportunity).toBeGreaterThan(0);
+    expect(
+      candidates.some((candidate) =>
+        /guide|checklist|framework|roadmap|best practices|roi|comparison|implementation|mistakes|strategy/i
+          .test(candidate.topic)
+      ),
+    ).toBe(true);
   });
 });

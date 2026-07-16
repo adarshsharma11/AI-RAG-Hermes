@@ -57,6 +57,7 @@ describe("SearchService", () => {
       search: {
         searchByEmbedding,
       },
+      topicHistory: {} as RepositoryContainer["topicHistory"],
       sync: {} as RepositoryContainer["sync"],
     };
     const provider = {
@@ -146,6 +147,7 @@ describe("SearchService", () => {
       search: {
         searchByEmbedding,
       },
+      topicHistory: {} as RepositoryContainer["topicHistory"],
       sync: {} as RepositoryContainer["sync"],
     };
     const provider = {

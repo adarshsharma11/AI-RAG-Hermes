@@ -262,11 +262,36 @@ export const projectProfiles = pgTable(
   (table) => [uniqueIndex("project_profiles_project_id_unique").on(table.projectId)],
 );
 
+export const topicHistory = pgTable(
+  "topic_history",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .references(() => projects.id, { onDelete: "cascade" })
+      .notNull(),
+    topic: text("topic").notNull(),
+    slug: text("slug").notNull(),
+    primaryKeyword: text("primary_keyword").notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    status: text("status").default("PLANNED").notNull(),
+    ...auditColumns,
+  },
+  (table) => [
+    index("topic_history_project_id_idx").on(table.projectId),
+    index("topic_history_status_idx").on(table.status),
+    uniqueIndex("topic_history_project_slug_unique").on(
+      table.projectId,
+      table.slug,
+    ),
+  ],
+);
+
 export const projectsRelations = relations(projects, ({ many }) => ({
   sources: many(sources),
   contentItems: many(contentItems),
   syncLogs: many(syncLogs),
   projectProfiles: many(projectProfiles),
+  topicHistory: many(topicHistory),
 }));
 
 export const sourcesRelations = relations(sources, ({ one, many }) => ({
@@ -321,6 +346,13 @@ export const projectProfilesRelations = relations(projectProfiles, ({ one }) => 
   }),
 }));
 
+export const topicHistoryRelations = relations(topicHistory, ({ one }) => ({
+  project: one(projects, {
+    fields: [topicHistory.projectId],
+    references: [projects.id],
+  }),
+}));
+
 export type ProjectRecord = typeof projects.$inferSelect;
 export type NewProjectRecord = typeof projects.$inferInsert;
 
@@ -341,3 +373,6 @@ export type NewContextCacheRecord = typeof contextCache.$inferInsert;
 
 export type ProjectProfileRecord = typeof projectProfiles.$inferSelect;
 export type NewProjectProfileRecord = typeof projectProfiles.$inferInsert;
+
+export type TopicHistoryRecord = typeof topicHistory.$inferSelect;
+export type NewTopicHistoryRecord = typeof topicHistory.$inferInsert;

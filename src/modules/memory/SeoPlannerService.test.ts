@@ -39,7 +39,7 @@ describe("SeoPlannerService", () => {
     });
 
     expect(result).toMatchObject({
-      slug: "bathroom-vanity-lighting-ideas",
+      slug: "bathroom-vanity-lighting-ideas-home-services",
       searchIntent: "Informational",
       primaryKeyword: "Bathroom Vanity Lighting Ideas",
     });
