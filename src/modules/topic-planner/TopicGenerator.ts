@@ -1,5 +1,6 @@
 import type { PlanningGapAnalysis, PlanningSearchIntent } from "./GapDetector.js";
 import type { IntentOpportunity } from "./SearchIntentClassifier.js";
+import type { ContentAngle } from "./ContentAnglePlanner.js";
 
 const normalizeText = (value: string): string =>
   value
@@ -22,6 +23,9 @@ const LONG_TAIL_CUES =
 export interface TopicCandidate {
   topic: string;
   category: string | null;
+  service: string;
+  contentAngle: ContentAngle;
+  titlePattern: string;
   searchIntent: PlanningSearchIntent;
   searchDemand: number;
   semanticUniqueness: number;
@@ -29,6 +33,7 @@ export interface TopicCandidate {
   conversionPotential: number;
   internalLinkOpportunity: number;
   topicalAuthority: number;
+  editorialDiversity: number;
   duplicateScore: number;
 }
 
@@ -95,6 +100,9 @@ const createCandidate = (
 ): TopicCandidate => ({
   topic: input.topic,
   category: input.category,
+  service: input.opportunity.service,
+  contentAngle: input.opportunity.contentAngle,
+  titlePattern: input.opportunity.titlePattern,
   searchIntent: input.opportunity.intent,
   searchDemand: input.opportunity.searchDemand,
   semanticUniqueness: computeSemanticUniqueness(
@@ -116,6 +124,7 @@ const createCandidate = (
   conversionPotential: input.opportunity.conversionPotential,
   internalLinkOpportunity: input.opportunity.internalLinkOpportunity,
   topicalAuthority: input.opportunity.topicalAuthority,
+  editorialDiversity: input.opportunity.editorialDiversity,
   duplicateScore: 0,
 });
 
@@ -141,52 +150,60 @@ const isHeadKeywordTopic = (
 };
 
 const composeTopicVariants = (input: {
+  service: string;
+  angle: ContentAngle;
   intent: PlanningSearchIntent;
-  concept: string;
   audience: string;
   industry: string;
 }): string[] => {
-  const { intent, concept, audience, industry } = input;
+  const { service, angle, intent, audience, industry } = input;
 
-  switch (intent) {
-    case "Strategic Planning":
+  switch (angle) {
+    case "Problem":
+      return [`What Problems Does ${service} Solve for ${audience}?`];
+    case "Mistakes":
+      return [`${service} Mistakes ${audience} Should Avoid`];
+    case "Checklist":
+      return [`${service} Checklist for ${audience}`];
+    case "Framework":
+      return [`${service} Framework for ${industry} Teams`];
+    case "Guide":
       return [
-        `${concept} Strategy for ${audience}`,
-        `${concept} Roadmap for ${CURRENT_YEAR}`,
-        `How to Measure ${concept} ROI`,
-        `${concept} Governance Framework for ${industry} Teams`,
+        intent === "Informational"
+          ? `${service} Guide for ${audience}`
+          : `How to Use ${service} to Improve Outcomes for ${audience}`,
       ];
+    case "Roadmap":
+      return [`${service} Roadmap for ${CURRENT_YEAR}`];
+    case "ROI":
+      return [`How to Measure ${service} ROI`];
+    case "Comparison":
+      return [`${service} Comparison for ${industry} Teams`];
+    case "Best Practices":
+      return [`${service} Best Practices for ${audience}`];
+    case "Case Study":
+      return [`${service} Case Study: What ${industry} Teams Can Learn`];
+    case "FAQ":
+      return [`${service} FAQ for ${audience}`];
+    case "Trends":
+      return [`${service} Trends ${industry} Teams Should Watch`];
+    case "Predictions":
+      return [`${service} Predictions for ${CURRENT_YEAR}`];
+    case "Security":
+      return [`${service} Security Priorities for ${industry} Teams`];
+    case "Governance":
+      return [`${service} Governance Guide for ${audience}`];
     case "Implementation":
       return [
-        `${concept} Implementation Checklist for ${audience}`,
-        `${concept} Rollout Plan for ${industry} Teams`,
-        `How to Implement ${concept} Without Slowing Delivery`,
-        `${concept} Implementation Roadmap for ${audience}`,
+        intent === "Transactional"
+          ? `When to Hire a ${service} Implementation Partner`
+          : `${service} Implementation Checklist for ${audience}`,
       ];
-    case "Comparison":
-      return [
-        `${concept} vs Traditional Automation: Which Fits ${industry} Better?`,
-        `How to Compare ${concept} Options for ${audience}`,
-        `${concept} Comparison Guide for ${industry} Teams`,
-      ];
-    case "Commercial Investigation":
-      return [
-        `How to Evaluate ${concept} Solutions for ${audience}`,
-        `${concept} Buyer Guide for ${industry} Teams`,
-        `What to Look for in ${concept} Vendors`,
-      ];
-    case "Transactional":
-      return [
-        `When to Hire a ${concept} Implementation Partner`,
-        `${concept} Services: What to Expect Before You Start`,
-        `How to Scope a ${concept} Project`,
-      ];
-    case "Informational":
+    case "Buyer Guide":
+      return [`${service} Buyer Guide for ${industry} Teams`];
     default:
       return [
-        `What ${audience} Should Know About ${concept}`,
-        `${concept} Best Practices for ${industry} Teams`,
-        `Common ${concept} Mistakes ${audience} Should Avoid`,
+        `What ${audience} Should Know About ${service}`,
       ];
   }
 };
@@ -212,14 +229,11 @@ export const createTopicGenerator = (): TopicGenerator => ({
     const avoidTopics = new Set(analysis.avoidTopics);
     const candidates: TopicCandidate[] = [];
     const seen = new Set<string>();
-    const services =
-      analysis.services.length > 0
-        ? analysis.services
-        : analysis.gaps.map((gap) => normalizeText(gap.anchor)).slice(0, 8);
     const audiences = analysis.audiences.length > 0
       ? analysis.audiences
       : ["technical teams", "operations leaders", "executive stakeholders"];
     const industries = analysis.industries.length > 0 ? analysis.industries : ["technology"];
+    const patternUsage = new Map<string, number>();
 
     const isBlockedTopic = (topic: string): boolean => {
       const normalizedTopic = normalizeText(topic);
@@ -239,50 +253,36 @@ export const createTopicGenerator = (): TopicGenerator => ({
       );
     };
 
-    const concepts = uniqueStrings([
-      ...analysis.gaps.map((gap) => gap.anchor),
-      ...analysis.preferredTopics.map((topic) => titleCase(topic)),
-      ...services.map((service) => titleCase(service)),
-      ...normalizedSeedKeywords.map((keyword) => titleCase(keyword)),
-    ]);
-
     for (const opportunity of intentOpportunities) {
-      const conceptPool = uniqueStrings([
-        titleCase(opportunity.anchor),
-        ...concepts.filter((concept) =>
-          normalizeText(concept).includes(normalizeText(opportunity.anchor)) ||
-          normalizeText(opportunity.anchor).includes(normalizeText(concept))
-        ),
-      ]).slice(0, 4);
+      for (const audience of audiences.slice(0, 4)) {
+        for (const industry of industries.slice(0, 3)) {
+          for (const topicTemplate of composeTopicVariants({
+            service: opportunity.service,
+            angle: opportunity.contentAngle,
+            intent: opportunity.intent,
+            audience,
+            industry,
+          })) {
+            const topic = titleCase(topicTemplate);
+            const patternCount = patternUsage.get(opportunity.titlePattern) ?? 0;
 
-      for (const concept of conceptPool) {
-        for (const audience of audiences.slice(0, 4)) {
-          for (const industry of industries.slice(0, 3)) {
-            for (const topicTemplate of composeTopicVariants({
-              intent: opportunity.intent,
-              concept,
-              audience,
-              industry,
-            })) {
-              const topic = titleCase(topicTemplate);
+            if (patternCount >= 2 || isBlockedTopic(topic)) {
+              continue;
+            }
 
-              if (isBlockedTopic(topic)) {
-                continue;
-              }
+            seen.add(normalizeText(topic));
+            patternUsage.set(opportunity.titlePattern, patternCount + 1);
+            candidates.push(
+              createCandidate({
+                topic,
+                category: opportunity.clusterLabel,
+                analysis,
+                opportunity,
+              }),
+            );
 
-              seen.add(normalizeText(topic));
-              candidates.push(
-                createCandidate({
-                  topic,
-                  category: opportunity.clusterLabel,
-                  analysis,
-                  opportunity,
-                }),
-              );
-
-              if (candidates.length >= 100 + offset) {
-                return candidates.slice(offset, offset + limit);
-              }
+            if (candidates.length >= 100 + offset) {
+              return candidates.slice(offset, offset + limit);
             }
           }
         }

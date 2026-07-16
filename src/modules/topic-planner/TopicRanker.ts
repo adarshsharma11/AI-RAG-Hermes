@@ -16,7 +16,8 @@ const scoreCandidate = (candidate: TopicCandidate): number =>
       candidate.semanticUniqueness * 0.19 +
       candidate.conversionPotential * 0.15 +
       candidate.internalLinkOpportunity * 0.1 +
-      candidate.topicalAuthority * 0.09
+      candidate.topicalAuthority * 0.06 +
+      candidate.editorialDiversity * 0.03
     ).toFixed(6),
   );
 

@@ -1,8 +1,8 @@
 import type {
-  ClusterGap,
   PlanningGapAnalysis,
   PlanningSearchIntent,
 } from "./GapDetector.js";
+import type { ContentAngle, ContentAngleOpportunity } from "./ContentAnglePlanner.js";
 
 const normalizeText = (value: string): string =>
   value
@@ -18,6 +18,9 @@ export interface IntentOpportunity {
   clusterKey: string;
   clusterLabel: string;
   anchor: string;
+  service: string;
+  contentAngle: ContentAngle;
+  titlePattern: string;
   intent: PlanningSearchIntent;
   searchDemand: number;
   businessValue: number;
@@ -25,61 +28,84 @@ export interface IntentOpportunity {
   conversionPotential: number;
   internalLinkOpportunity: number;
   topicalAuthority: number;
+  editorialDiversity: number;
 }
 
 export interface SearchIntentClassifier {
-  classify(input: { analysis: PlanningGapAnalysis }): IntentOpportunity[];
+  classify(input: {
+    analysis: PlanningGapAnalysis;
+    anglePlans: ContentAngleOpportunity[];
+  }): IntentOpportunity[];
 }
 
-const inferIntentsForGap = (
-  gap: ClusterGap,
+const inferIntentsForAngle = (
+  anglePlan: ContentAngleOpportunity,
   analysis: PlanningGapAnalysis,
 ): PlanningSearchIntent[] => {
-  const normalizedAnchor = normalizeText(gap.anchor);
-  const intents: PlanningSearchIntent[] = [gap.searchIntent];
+  const normalizedAnchor = normalizeText(`${anglePlan.anchor} ${anglePlan.service}`);
+  const intents: PlanningSearchIntent[] = [];
 
-  if (
-    gap.businessIntent === "Conversion" ||
-    /(implementation|rollout|deployment|integration|migration)/.test(normalizedAnchor)
-  ) {
-    intents.push("Implementation");
+  switch (anglePlan.contentAngle) {
+    case "Buyer Guide":
+      intents.push("Commercial Investigation", "Transactional");
+      break;
+    case "Implementation":
+      intents.push("Implementation", "Transactional");
+      break;
+    case "Comparison":
+      intents.push("Comparison", "Commercial Investigation");
+      break;
+    case "ROI":
+    case "Governance":
+    case "Roadmap":
+    case "Predictions":
+    case "Trends":
+      intents.push("Strategic Planning", "Informational");
+      break;
+    case "Checklist":
+    case "Best Practices":
+    case "Security":
+      intents.push("Implementation", "Informational");
+      break;
+    case "Case Study":
+      intents.push("Commercial Investigation", "Informational");
+      break;
+    case "FAQ":
+    case "Guide":
+    case "Problem":
+    case "Mistakes":
+      intents.push("Informational");
+      break;
+    case "Framework":
+      intents.push("Strategic Planning", "Commercial Investigation");
+      break;
   }
 
-  if (
-    gap.serviceRelevance >= 0.72 ||
-    /(buyer|vendor|solution|platform|tool|service|partner)/.test(normalizedAnchor)
-  ) {
+  if (/(buyer|vendor|solution|platform|tool|service|partner)/.test(normalizedAnchor)) {
     intents.push("Commercial Investigation");
   }
-
-  if (
-    gap.serviceRelevance >= 0.84 ||
-    /(service|partner|consulting|agency|outsourcing)/.test(normalizedAnchor)
-  ) {
+  if (/(service|partner|consulting|agency|outsourcing)/.test(normalizedAnchor)) {
     intents.push("Transactional");
   }
-
-  if (
-    /(comparison|compare|vs|versus|alternative|roi)/.test(normalizedAnchor) ||
-    gap.businessIntent === "Evaluation"
-  ) {
+  if (/(comparison|compare|vs|versus|alternative|roi)/.test(normalizedAnchor)) {
     intents.push("Comparison");
   }
-
   if (
     /(strategy|roadmap|governance|leadership|planning|enterprise)/.test(normalizedAnchor) ||
     analysis.audiences.some((audience) => /(leader|executive|director|vp|cfo|cio|cto)/.test(audience))
   ) {
     intents.push("Strategic Planning");
   }
-
+  if (/(implementation|rollout|deployment|integration|migration)/.test(normalizedAnchor)) {
+    intents.push("Implementation");
+  }
   intents.push("Informational");
 
   return uniqueStrings(intents);
 };
 
 const scoreSearchDemand = (
-  gap: ClusterGap,
+  anglePlan: ContentAngleOpportunity,
   intent: PlanningSearchIntent,
 ): number => {
   const intentBonus =
@@ -99,15 +125,15 @@ const scoreSearchDemand = (
     Math.min(
       1,
       0.42 +
-        gap.seoOpportunity * 0.35 +
-        gap.semanticGap * 0.12 +
+        anglePlan.businessValue * 0.18 +
+        anglePlan.editorialDiversity * 0.12 +
         intentBonus,
     ).toFixed(4),
   );
 };
 
 const scoreConversionPotential = (
-  gap: ClusterGap,
+  anglePlan: ContentAngleOpportunity,
   intent: PlanningSearchIntent,
 ): number => {
   const intentBonus =
@@ -127,18 +153,18 @@ const scoreConversionPotential = (
     Math.min(
       1,
       0.3 +
-        gap.businessValue * 0.28 +
-        gap.serviceRelevance * 0.22 +
+        anglePlan.businessValue * 0.24 +
+        anglePlan.serviceWeight * 0.18 +
         intentBonus,
     ).toFixed(4),
   );
 };
 
 const scoreTopicalAuthority = (
-  gap: ClusterGap,
+  anglePlan: ContentAngleOpportunity,
   analysis: PlanningGapAnalysis,
 ): number => {
-  const cluster = analysis.clusters.find((candidate) => candidate.key === gap.clusterKey);
+  const cluster = analysis.clusters.find((candidate) => candidate.key === anglePlan.clusterKey);
   const existingCoverage = cluster
     ? Math.min(0.32, cluster.totalCount * 0.08 + cluster.historyCount * 0.04)
     : 0.05;
@@ -148,34 +174,41 @@ const scoreTopicalAuthority = (
       1,
       0.28 +
         existingCoverage +
-        gap.serviceRelevance * 0.22 +
-        gap.businessValue * 0.18,
+        anglePlan.serviceWeight * 0.2 +
+        anglePlan.businessValue * 0.18,
     ).toFixed(4),
   );
 };
 
 export const createSearchIntentClassifier = (): SearchIntentClassifier => ({
-  classify: ({ analysis }) =>
-    analysis.gaps
-      .flatMap((gap) =>
-        inferIntentsForGap(gap, analysis).map((intent): IntentOpportunity => ({
-          clusterKey: gap.clusterKey,
-          clusterLabel: gap.clusterLabel,
-          anchor: gap.anchor,
+  classify: ({ analysis, anglePlans }) =>
+    anglePlans
+      .flatMap((anglePlan) =>
+        inferIntentsForAngle(anglePlan, analysis).map((intent): IntentOpportunity => ({
+          clusterKey: anglePlan.clusterKey,
+          clusterLabel: anglePlan.clusterLabel,
+          anchor: anglePlan.anchor,
+          service: anglePlan.service,
+          contentAngle: anglePlan.contentAngle,
+          titlePattern: anglePlan.titlePattern,
           intent,
-          searchDemand: scoreSearchDemand(gap, intent),
-          businessValue: gap.businessValue,
+          searchDemand: scoreSearchDemand(anglePlan, intent),
+          businessValue: anglePlan.businessValue,
           uniqueness: Number(
-            Math.min(1, 0.35 + gap.semanticGap * 0.45 + gap.clusterDiversity * 0.2).toFixed(4),
+            Math.min(
+              1,
+              0.32 + anglePlan.editorialDiversity * 0.38 + anglePlan.serviceWeight * 0.3,
+            ).toFixed(4),
           ),
-          conversionPotential: scoreConversionPotential(gap, intent),
+          conversionPotential: scoreConversionPotential(anglePlan, intent),
           internalLinkOpportunity: Number(
             Math.min(
               1,
-              0.3 + gap.clusterDiversity * 0.25 + gap.serviceRelevance * 0.2 + gap.freshness * 0.1,
+              0.28 + anglePlan.internalLinkOpportunity * 0.55 + anglePlan.editorialDiversity * 0.12,
             ).toFixed(4),
           ),
-          topicalAuthority: scoreTopicalAuthority(gap, analysis),
+          topicalAuthority: scoreTopicalAuthority(anglePlan, analysis),
+          editorialDiversity: anglePlan.editorialDiversity,
         })),
       )
       .sort((left, right) => {
@@ -184,15 +217,17 @@ export const createSearchIntentClassifier = (): SearchIntentClassifier => ({
           left.businessValue * 0.2 +
           left.conversionPotential * 0.18 +
           left.topicalAuthority * 0.17 +
-          left.uniqueness * 0.1 +
-          left.internalLinkOpportunity * 0.07;
+          left.uniqueness * 0.09 +
+          left.editorialDiversity * 0.05 +
+          left.internalLinkOpportunity * 0.03;
         const rightScore =
           right.searchDemand * 0.28 +
           right.businessValue * 0.2 +
           right.conversionPotential * 0.18 +
           right.topicalAuthority * 0.17 +
-          right.uniqueness * 0.1 +
-          right.internalLinkOpportunity * 0.07;
+          right.uniqueness * 0.09 +
+          right.editorialDiversity * 0.05 +
+          right.internalLinkOpportunity * 0.03;
 
         return rightScore - leftScore;
       })

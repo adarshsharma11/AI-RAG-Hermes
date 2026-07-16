@@ -22,6 +22,23 @@ describe("TopicPlannerService", () => {
       logger: {
         debug: vi.fn(),
       } as never,
+      contentAnglePlanner: {
+        plan: vi.fn().mockReturnValue([
+          {
+            clusterKey: "kitchen",
+            clusterLabel: "Kitchen",
+            anchor: "Cabinet Hardware",
+            service: "Cabinet Hardware",
+            contentAngle: "Roadmap",
+            serviceWeight: 1,
+            editorialDiversity: 0.82,
+            titlePattern: "roadmap",
+            businessValue: 0.8,
+            internalLinkOpportunity: 0.72,
+            topicalAuthority: 0.66,
+          },
+        ]),
+      },
       contentClusterAnalyzer: {
         analyze: vi.fn().mockReturnValue([]),
       },
@@ -57,6 +74,26 @@ describe("TopicPlannerService", () => {
           ],
         }),
       },
+      searchIntentClassifier: {
+        classify: vi.fn().mockReturnValue([
+          {
+            clusterKey: "kitchen",
+            clusterLabel: "Kitchen",
+            anchor: "Cabinet Hardware",
+            service: "Cabinet Hardware",
+            contentAngle: "Roadmap",
+            titlePattern: "roadmap",
+            intent: "Strategic Planning",
+            searchDemand: 0.81,
+            businessValue: 0.8,
+            uniqueness: 0.84,
+            conversionPotential: 0.66,
+            internalLinkOpportunity: 0.85,
+            topicalAuthority: 0.69,
+            editorialDiversity: 0.82,
+          },
+        ]),
+      },
       topicGenerator: {
         generateCandidates: vi.fn().mockImplementation(({ offset }) =>
           offset === 0
@@ -64,6 +101,9 @@ describe("TopicPlannerService", () => {
                 {
                   topic: "Kitchen Cabinet Hardware Checklist for Homeowners",
                   category: "Kitchen",
+                  service: "Cabinet Hardware",
+                  contentAngle: "Checklist",
+                  titlePattern: "checklist",
                   searchIntent: "Implementation",
                   searchDemand: 0.78,
                   semanticUniqueness: 0.5,
@@ -71,11 +111,15 @@ describe("TopicPlannerService", () => {
                   conversionPotential: 0.84,
                   internalLinkOpportunity: 0.75,
                   topicalAuthority: 0.64,
+                  editorialDiversity: 0.62,
                   duplicateScore: 0,
                 },
                 {
                   topic: "Kitchen Cabinet Hardware Strategy for Homeowners",
                   category: "Kitchen",
+                  service: "Cabinet Hardware",
+                  contentAngle: "Roadmap",
+                  titlePattern: "roadmap",
                   searchIntent: "Strategic Planning",
                   searchDemand: 0.81,
                   semanticUniqueness: 0.9,
@@ -83,6 +127,7 @@ describe("TopicPlannerService", () => {
                   conversionPotential: 0.66,
                   internalLinkOpportunity: 0.85,
                   topicalAuthority: 0.69,
+                  editorialDiversity: 0.82,
                   duplicateScore: 0,
                 },
               ]
@@ -138,6 +183,23 @@ describe("TopicPlannerService", () => {
       logger: {
         debug: vi.fn(),
       } as never,
+      contentAnglePlanner: {
+        plan: vi.fn().mockReturnValue([
+          {
+            clusterKey: "kitchen-1",
+            clusterLabel: "Kitchen",
+            anchor: "Cabinet Hardware 1",
+            service: "Cabinet Hardware",
+            contentAngle: "Buyer Guide",
+            serviceWeight: 1,
+            editorialDiversity: 0.8,
+            titlePattern: "buyer-guide",
+            businessValue: 0.82,
+            internalLinkOpportunity: 0.71,
+            topicalAuthority: 0.65,
+          },
+        ]),
+      },
       contentClusterAnalyzer: {
         analyze: vi.fn().mockReturnValue([]),
       },
@@ -170,6 +232,26 @@ describe("TopicPlannerService", () => {
             businessIntent: "Evaluation",
           })),
         }),
+      },
+      searchIntentClassifier: {
+        classify: vi.fn().mockReturnValue([
+          {
+            clusterKey: "kitchen-1",
+            clusterLabel: "Kitchen",
+            anchor: "Cabinet Hardware 1",
+            service: "Cabinet Hardware",
+            contentAngle: "Buyer Guide",
+            titlePattern: "buyer-guide",
+            intent: "Commercial Investigation",
+            searchDemand: 0.83,
+            businessValue: 0.82,
+            uniqueness: 0.8,
+            conversionPotential: 0.78,
+            internalLinkOpportunity: 0.71,
+            topicalAuthority: 0.65,
+            editorialDiversity: 0.8,
+          },
+        ]),
       },
       duplicateDetector: {
         detect: vi.fn().mockResolvedValue({

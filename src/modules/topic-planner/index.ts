@@ -4,6 +4,12 @@ export {
   type ContentClusterAnalyzer,
 } from "./ContentClusterAnalyzer.js";
 export {
+  createContentAnglePlanner,
+  type ContentAngle,
+  type ContentAngleOpportunity,
+  type ContentAnglePlanner,
+} from "./ContentAnglePlanner.js";
+export {
   createGapDetector,
   type ClusterGap,
   type GapDetector,

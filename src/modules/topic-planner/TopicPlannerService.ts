@@ -7,6 +7,10 @@ import {
 } from "../memory/DuplicateDetector.js";
 import type { SearchService } from "../search/search.service.js";
 import {
+  createContentAnglePlanner,
+  type ContentAnglePlanner,
+} from "./ContentAnglePlanner.js";
+import {
   createContentClusterAnalyzer,
   type ContentClusterAnalyzer,
 } from "./ContentClusterAnalyzer.js";
@@ -53,6 +57,7 @@ export interface CreateTopicPlannerServiceOptions {
   searchService: SearchService;
   logger: AppLogger;
   duplicateDetector?: DuplicateDetector | undefined;
+  contentAnglePlanner?: ContentAnglePlanner | undefined;
   contentClusterAnalyzer?: ContentClusterAnalyzer | undefined;
   gapDetector?: GapDetector | undefined;
   searchIntentClassifier?: SearchIntentClassifier | undefined;
@@ -66,6 +71,7 @@ export const createTopicPlannerService = ({
   searchService,
   logger,
   duplicateDetector = createDuplicateDetector({ searchService }),
+  contentAnglePlanner = createContentAnglePlanner(),
   contentClusterAnalyzer = createContentClusterAnalyzer(),
   gapDetector = createGapDetector(),
   searchIntentClassifier = createSearchIntentClassifier(),
@@ -95,7 +101,20 @@ export const createTopicPlannerService = ({
       return null;
     }
 
-    const intentOpportunities = searchIntentClassifier.classify({ analysis });
+    const anglePlans = contentAnglePlanner.plan({
+      analysis,
+      topicHistory,
+    });
+
+    if (anglePlans.length === 0) {
+      logger.debug({ projectId }, "No content angles available for planning");
+      return null;
+    }
+
+    const intentOpportunities = searchIntentClassifier.classify({
+      analysis,
+      anglePlans,
+    });
 
     if (intentOpportunities.length === 0) {
       logger.debug({ projectId }, "No intent opportunities available for planning");
@@ -171,6 +190,9 @@ export const createTopicPlannerService = ({
           (candidate): TopicCandidate => ({
             topic: candidate.topic,
             category: candidate.category,
+            service: candidate.service,
+            contentAngle: candidate.contentAngle,
+            titlePattern: candidate.titlePattern,
             searchIntent: candidate.searchIntent,
             searchDemand: candidate.searchDemand,
             semanticUniqueness: candidate.semanticUniqueness,
@@ -178,6 +200,7 @@ export const createTopicPlannerService = ({
             conversionPotential: candidate.conversionPotential,
             internalLinkOpportunity: candidate.internalLinkOpportunity,
             topicalAuthority: candidate.topicalAuthority,
+            editorialDiversity: candidate.editorialDiversity,
             duplicateScore: candidate.duplicateScore,
           }),
         ),

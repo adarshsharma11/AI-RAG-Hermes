@@ -9,6 +9,9 @@ describe("TopicRanker", () => {
       {
         topic: "Kitchen Cabinet Hardware Guide",
         category: "Kitchen",
+        service: "Kitchen Cabinet Hardware",
+        contentAngle: "Guide",
+        titlePattern: "guide",
         searchIntent: "Informational",
         searchDemand: 0.86,
         semanticUniqueness: 0.92,
@@ -16,11 +19,15 @@ describe("TopicRanker", () => {
         conversionPotential: 0.82,
         internalLinkOpportunity: 0.8,
         topicalAuthority: 0.77,
+        editorialDiversity: 0.71,
         duplicateScore: 0,
       },
       {
         topic: "Kitchen Cabinet Pull Tips",
         category: "Kitchen",
+        service: "Kitchen Cabinet Pulls",
+        contentAngle: "Guide",
+        titlePattern: "guide",
         searchIntent: "Informational",
         searchDemand: 0.61,
         semanticUniqueness: 0.55,
@@ -28,6 +35,7 @@ describe("TopicRanker", () => {
         conversionPotential: 0.44,
         internalLinkOpportunity: 0.45,
         topicalAuthority: 0.41,
+        editorialDiversity: 0.38,
         duplicateScore: 0.2,
       },
     ]);

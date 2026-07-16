@@ -51,6 +51,34 @@ describe("SearchIntentClassifier", () => {
           },
         ],
       },
+      anglePlans: [
+        {
+          clusterKey: "strategy",
+          clusterLabel: "Strategy",
+          anchor: "Enterprise AI",
+          service: "Enterprise Ai Advisory",
+          contentAngle: "Buyer Guide",
+          serviceWeight: 1,
+          editorialDiversity: 0.86,
+          titlePattern: "buyer-guide",
+          businessValue: 0.91,
+          internalLinkOpportunity: 0.68,
+          topicalAuthority: 0.72,
+        },
+        {
+          clusterKey: "strategy",
+          clusterLabel: "Strategy",
+          anchor: "Enterprise AI",
+          service: "Enterprise Ai Advisory",
+          contentAngle: "Roadmap",
+          serviceWeight: 1,
+          editorialDiversity: 0.82,
+          titlePattern: "roadmap",
+          businessValue: 0.91,
+          internalLinkOpportunity: 0.68,
+          topicalAuthority: 0.72,
+        },
+      ],
     });
 
     expect(opportunities.length).toBeGreaterThan(0);

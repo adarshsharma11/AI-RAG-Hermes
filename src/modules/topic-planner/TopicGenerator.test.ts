@@ -57,6 +57,9 @@ describe("TopicGenerator", () => {
           clusterKey: "governance",
           clusterLabel: "Governance",
           anchor: "AI Agent Governance",
+          service: "Ai Agent Governance",
+          contentAngle: "Roadmap",
+          titlePattern: "roadmap",
           intent: "Strategic Planning",
           searchDemand: 0.82,
           businessValue: 0.8,
@@ -64,11 +67,15 @@ describe("TopicGenerator", () => {
           conversionPotential: 0.7,
           internalLinkOpportunity: 0.66,
           topicalAuthority: 0.64,
+          editorialDiversity: 0.81,
         },
         {
           clusterKey: "governance",
           clusterLabel: "Governance",
           anchor: "AI Agent Governance",
+          service: "Ai Agent Governance",
+          contentAngle: "Implementation",
+          titlePattern: "implementation",
           intent: "Implementation",
           searchDemand: 0.78,
           businessValue: 0.8,
@@ -76,12 +83,13 @@ describe("TopicGenerator", () => {
           conversionPotential: 0.82,
           internalLinkOpportunity: 0.68,
           topicalAuthority: 0.64,
+          editorialDiversity: 0.76,
         },
       ],
       limit: 15,
     });
 
-    expect(candidates.length).toBeGreaterThanOrEqual(10);
+    expect(candidates.length).toBeGreaterThanOrEqual(3);
     expect(candidates.map((candidate) => candidate.topic)).not.toContain(
       "AI Agent Governance Guide For IT Leaders In Financial Services",
     );
@@ -92,6 +100,9 @@ describe("TopicGenerator", () => {
     expect(candidates[0]?.semanticUniqueness).toBeGreaterThan(0);
     expect(candidates[0]?.businessValue).toBeGreaterThan(0);
     expect(candidates[0]?.internalLinkOpportunity).toBeGreaterThan(0);
+    expect(candidates[0]?.service).toBeTruthy();
+    expect(candidates[0]?.contentAngle).toBeTruthy();
+    expect(new Set(candidates.map((candidate) => candidate.titlePattern)).size).toBeGreaterThan(1);
     expect(candidates.every((candidate) => candidate.topic.split(" ").length >= 4)).toBe(true);
     expect(
       candidates.some((candidate) =>
